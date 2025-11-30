@@ -37,6 +37,7 @@ This guide will help you deploy the Qt Fashion backend API to Railway with Supab
 ### 1.3 Enable Required Extensions (Optional)
 
 In Supabase Dashboard:
+
 1. Go to **Database** > **Extensions**
 2. Search and enable:
    - `uuid-ossp` (for UUID generation)
@@ -112,6 +113,7 @@ ALLOWED_ORIGINS=*
 ```
 
 **To generate a JWT secret:**
+
 ```bash
 # Run this in your terminal
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -122,11 +124,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 After deployment, you need to set up the database schema:
 
 #### Using Railway CLI:
+
 ```bash
 railway run npx prisma migrate deploy
 ```
 
 #### Or in Railway Dashboard:
+
 1. Go to your service
 2. Click **Settings**
 3. Scroll to **Deploy Triggers**
@@ -188,12 +192,14 @@ Once you have your Railway URL, update the CORS settings:
 ## Monitoring and Logs
 
 ### View Logs
+
 1. In Railway dashboard, click your service
 2. Go to **Deployments** tab
 3. Click on the latest deployment
 4. View real-time logs
 
 ### Database Management
+
 1. Go to Supabase dashboard
 2. Click **Table Editor** to view/edit data
 3. Click **SQL Editor** to run custom queries
@@ -203,10 +209,12 @@ Once you have your Railway URL, update the CORS settings:
 ### Build Fails
 
 **Check build logs in Railway:**
+
 - Ensure all dependencies are in `package.json`
 - Verify Node.js version compatibility
 
 **Common fixes:**
+
 ```bash
 # Add engines to package.json
 {
@@ -220,6 +228,7 @@ Once you have your Railway URL, update the CORS settings:
 ### Database Connection Issues
 
 **Verify connection string:**
+
 - Ensure password doesn't have special characters (or URL encode them)
 - Check if Supabase database is active
 - Test connection locally first:
@@ -254,10 +263,12 @@ railway run npx prisma migrate deploy
 ## Cost Estimation
 
 ### Free Tier Limits:
+
 - **Railway**: $5 credit/month (enough for testing)
 - **Supabase**: 500MB database, 1GB file storage, 2GB bandwidth
 
 ### When You Need to Upgrade:
+
 - More than 100 concurrent users
 - Database > 500MB
 - High traffic (>2GB/month)
@@ -317,11 +328,13 @@ railway status
 5. **API Rate limiting**: Consider adding rate limiting for production
 
 **🎉 Once deployed, your API URL will look like:**
+
 ```
 https://qt-fashion-backend-production.up.railway.app
 ```
 
 **Your mobile app will connect to:**
+
 ```
 https://qt-fashion-backend-production.up.railway.app/api
 ```
