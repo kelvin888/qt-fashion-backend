@@ -1,0 +1,67 @@
+import express, { Application } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { errorHandler } from './middleware/errorHandler';
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import measurementRoutes from './routes/measurement.routes';
+import designRoutes from './routes/design.routes';
+import tryOnRoutes from './routes/tryOn.routes';
+import orderRoutes from './routes/order.routes';
+
+// Load environment variables
+dotenv.config();
+
+const app: Application = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    credentials: true,
+  })
+);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'QT Fashion API is running' });
+});
+
+// Mock auth endpoint for testing without database
+app.post('/api/auth/mock-login', (req, res) => {
+  const { email, password } = req.body;
+
+  // Mock user response
+  res.json({
+    message: 'Login successful (MOCK MODE)',
+    user: {
+      id: 'mock-user-123',
+      email: email || 'test@example.com',
+      name: 'Test User',
+      role: 'CUSTOMER',
+    },
+    token: 'mock-jwt-token-12345',
+  });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/measurements', measurementRoutes);
+app.use('/api/designs', designRoutes);
+app.use('/api/try-on', tryOnRoutes);
+app.use('/api/orders', orderRoutes);
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+export default app;

@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User types: customer or designer
+enum UserRole {
+  CUSTOMER
+  DESIGNER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAYMENT_HELD
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  HELD_IN_ESCROW
+  RELEASED
+  REFUNDED
+}
+
+model User {
+  id                String              @id @default(cuid())
+  email             String              @unique
+  password          String
+  name              String
+  role              UserRole            @default(CUSTOMER)
+  phone             String?
+  avatar            String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  bodyMeasurements  BodyMeasurement[]
+  designs           Design[]            // For designers
+  orders            Order[]             @relation("CustomerOrders")
+  designerOrders    Order[]             @relation("DesignerOrders")
+  tryOns            VirtualTryOn[]
+
+  @@map("users")
+}
+
+model BodyMeasurement {
+  id                String    @id @default(cuid())
+  userId            String
+  
+  // Measurements in cm
+  chest             Float
+  waist             Float
+  hips              Float
+  height            Float
+  shoulder          Float?
+  armLength         Float?
+  inseam            Float?
+  neck              Float?
+  
+  // Photo URLs
+  frontPhoto        String
+  sidePhoto         String?
+  
+  // AI Analysis data
+  aiConfidenceScore Float?
+  aiMetadata        Json?
+  
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tryOns            VirtualTryOn[]
+
+  @@map("body_measurements")
+}
+
+model Design {
+  id                String    @id @default(cuid())
+  designerId        String
+  
+  title             String
+  description       String
+  category          String    // e.g., "dress", "shirt", "pants"
+  price             Float
+  
+  // Design images
+  images            String    // JSON array of image URLs
+  thumbnailUrl      String
+  
+  // Design specifications
+  fabricType        String?
+  colors            String    // JSON array of available colors
+  sizes             String    // JSON array of available sizes or "custom"
+  
+  // Production details
+  productionTime    Int       // Days
+  
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  designer          User      @relation(fields: [designerId], references: [id], onDelete: Cascade)
+  orders            Order[]
+  tryOns            VirtualTryOn[]
+
+  @@map("designs")
+}
+
+model VirtualTryOn {
+  id                String    @id @default(cuid())
+  userId            String
+  designId          String
+  measurementId     String
+  
+  // Try-on result
+  resultImageUrl    String?
+  resultVideoUrl    String?
+  
+  // AI processing
+  status            String    @default("processing") // processing, completed, failed
+  aiMetadata        Json?
+  
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  design            Design            @relation(fields: [designId], references: [id], onDelete: Cascade)
+  measurement       BodyMeasurement   @relation(fields: [measurementId], references: [id], onDelete: Cascade)
+
+  @@map("virtual_try_ons")
+}
+
+model Order {
+  id                String        @id @default(cuid())
+  customerId        String
+  designerId        String
+  designId          String
+  
+  // Order details
+  status            OrderStatus   @default(PENDING)
+  totalAmount       Float
+  
+  // Custom measurements if provided
+  customMeasurements Json?
+  
+  // Customization options
+  selectedColor     String?
+  selectedSize      String?
+  specialInstructions String?
+  
+  // Production tracking
+  productionStage   String?       // e.g., "cutting", "stitching", "finishing"
+  estimatedDelivery DateTime?
+  actualDelivery    DateTime?
+  
+  // Shipping
+  shippingAddress   Json
+  trackingNumber    String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  customer          User          @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
+  designer          User          @relation("DesignerOrders", fields: [designerId], references: [id], onDelete: Cascade)
+  design            Design        @relation(fields: [designId], references: [id], onDelete: Cascade)
+  payment           Payment?
+  progressUpdates   ProductionProgress[]
+
+  @@map("orders")
+}
+
+model ProductionProgress {
+  id                String    @id @default(cuid())
+  orderId           String
+  
+  stage             String    // e.g., "order_received", "cutting", "stitching", "quality_check", "shipped"
+  description       String
+  imageUrl          String?   // Optional progress photo
+  
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  order             Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("production_progress")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String        @unique
+  
+  amount            Float
+  currency          String        @default("USD")
+  status            PaymentStatus @default(PENDING)
+  
+  // Payment gateway details
+  paymentIntentId   String?       // Stripe/Paystack payment ID
+  paymentMethod     String?
+  
+  // Escrow
+  heldAt            DateTime?
+  releasedAt        DateTime?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
