@@ -1,20 +1,23 @@
 # 🎨 AI Virtual Try-On Setup Guide
 
 ## Overview
+
 Your backend now supports **high-accuracy AI virtual try-on** using Replicate + Hugging Face fallback.
 
 ## Cost Breakdown
 
 ### Replicate (Primary - High Accuracy)
+
 - **Accuracy**: 90-95% (Production quality)
 - **Model**: OOTDiffusion (State of the art)
 - **Cost**: ~$0.01-0.05 per generation
 - **Speed**: 5-15 seconds
-- **Budget for validation**: 
+- **Budget for validation**:
   - $10 = 200-1000 try-ons
   - $20 = 400-2000 try-ons
 
 ### Hugging Face (Fallback - Free)
+
 - **Accuracy**: 70-80% (Good for fallback)
 - **Model**: IDM-VTON
 - **Cost**: FREE (with rate limits)
@@ -42,13 +45,16 @@ Your backend now supports **high-accuracy AI virtual try-on** using Replicate + 
 ### 3. Configure Environment Variables
 
 #### Local Development (.env)
+
 ```bash
 REPLICATE_API_TOKEN=r8_your_token_here
 HUGGINGFACE_API_KEY=hf_your_token_here  # Optional fallback
 ```
 
 #### Railway Production
+
 Add these in Railway dashboard:
+
 ```
 REPLICATE_API_TOKEN=r8_your_token_here
 HUGGINGFACE_API_KEY=hf_your_token_here  # Optional
@@ -62,6 +68,7 @@ npm run dev
 ```
 
 Use Postman/curl to test:
+
 ```bash
 curl -X POST http://localhost:4000/api/try-on \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -82,6 +89,7 @@ Railway will auto-deploy with new environment variables.
 ## API Usage
 
 ### Endpoint
+
 ```
 POST /api/try-on
 Authorization: Bearer <JWT_TOKEN>
@@ -89,12 +97,14 @@ Content-Type: multipart/form-data
 ```
 
 ### Request Body
+
 ```
 userImage: File (JPG/PNG, max 10MB)
 garmentImage: File (JPG/PNG, max 10MB)
 ```
 
 ### Response (Success)
+
 ```json
 {
   "success": true,
@@ -107,6 +117,7 @@ garmentImage: File (JPG/PNG, max 10MB)
 ```
 
 ### Response (Quota Exceeded)
+
 ```json
 {
   "success": false,
@@ -117,12 +128,14 @@ garmentImage: File (JPG/PNG, max 10MB)
 ## Cost Controls
 
 ### Built-in Safety Features:
+
 1. **Rate Limiting**: Max 100 requests/hour (adjustable in code)
 2. **Fallback**: Auto-switches to Hugging Face if Replicate fails
 3. **Monitoring**: `/api/try-on/stats` endpoint shows usage
 4. **File Cleanup**: Uploaded images auto-deleted after processing
 
 ### Check Usage Stats
+
 ```bash
 GET /api/try-on/stats
 Authorization: Bearer <JWT_TOKEN>
@@ -141,6 +154,7 @@ Response:
 ## Optimization Tips
 
 ### For MVP Validation (Minimal Cost):
+
 1. Start with $10 credit
 2. Test with 5-10 designs only
 3. Use same test photos for demos
@@ -148,6 +162,7 @@ Response:
 5. Cache results in database (coming soon)
 
 ### Quality Settings (Adjustable in code):
+
 ```typescript
 // In tryOn.service.ts - tryOnWithReplicate()
 num_inference_steps: 20,  // Lower = faster/cheaper, Higher = better quality
@@ -157,19 +172,23 @@ guidance_scale: 2.0,      // Controls how closely it follows the garment
 ## Troubleshooting
 
 ### "No AI service configured"
+
 - Check environment variables are set
 - Restart server after adding tokens
 
 ### "Model is loading" (Hugging Face)
+
 - Wait 20 seconds and retry
 - This happens when model hasn't been used recently
 
 ### High costs
+
 - Check stats endpoint for usage
 - Reduce MAX_REQUESTS_PER_HOUR in code
 - Implement caching (store results in DB)
 
 ### Poor quality results
+
 - Ensure input images are clear and well-lit
 - User photo should show full body/upper body
 - Garment image should be on plain background
@@ -188,16 +207,19 @@ guidance_scale: 2.0,      // Controls how closely it follows the garment
 ## Support Models
 
 Currently using:
+
 - **Replicate**: `levihsu/ootdiffusion` (Best quality)
 - **Hugging Face**: `yisol/IDM-VTON` (Free fallback)
 
 Alternative models (if needed):
+
 - `viktorfa/oot_diffusion` (Faster but less accurate)
 - `cuuupid/idm-vton` (Alternative VTON model)
 
 ## Expected Quality
 
 ### Replicate (OOTDiffusion):
+
 - ✅ Realistic fabric wrinkles
 - ✅ Accurate body proportions
 - ✅ Good lighting adaptation
@@ -205,6 +227,7 @@ Alternative models (if needed):
 - ⚠️ May struggle with complex patterns
 
 ### Hugging Face (IDM-VTON):
+
 - ✅ Fast processing
 - ✅ Good for simple designs
 - ⚠️ Less realistic lighting

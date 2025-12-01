@@ -17,7 +17,7 @@ router.post(
   authenticate,
   upload.fields([
     { name: 'userImage', maxCount: 1 },
-    { name: 'garmentImage', maxCount: 1 }
+    { name: 'garmentImage', maxCount: 1 },
   ]),
   async (req: Request, res: Response) => {
     try {
@@ -64,7 +64,7 @@ router.post(
       }
     } catch (error: any) {
       console.error('❌ Try-on route error:', error);
-      
+
       // Clean up files on error
       try {
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };

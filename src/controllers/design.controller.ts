@@ -34,7 +34,8 @@ export const createDesign = async (req: Request, res: Response) => {
       });
     }
 
-    const { title, description, category, price, fabricType, colors, sizes, productionTime } = req.body;
+    const { title, description, category, price, fabricType, colors, sizes, productionTime } =
+      req.body;
 
     if (!title || !description || !category || !price) {
       return res.status(400).json({
@@ -44,7 +45,7 @@ export const createDesign = async (req: Request, res: Response) => {
     }
 
     // Process uploaded images
-    const imageUrls = files.map(file => `/uploads/${path.basename(file.path)}`);
+    const imageUrls = files.map((file) => `/uploads/${path.basename(file.path)}`);
     const thumbnailUrl = imageUrls[0]; // First image as thumbnail
 
     // Parse arrays if they're JSON strings
@@ -103,7 +104,15 @@ export const createDesign = async (req: Request, res: Response) => {
  */
 export const getDesigns = async (req: Request, res: Response) => {
   try {
-    const { category, designerId, minPrice, maxPrice, search, page = '1', limit = '20' } = req.query;
+    const {
+      category,
+      designerId,
+      minPrice,
+      maxPrice,
+      search,
+      page = '1',
+      limit = '20',
+    } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -156,7 +165,7 @@ export const getDesigns = async (req: Request, res: Response) => {
     ]);
 
     // Parse JSON fields
-    const parsedDesigns = designs.map(design => ({
+    const parsedDesigns = designs.map((design) => ({
       ...design,
       images: JSON.parse(design.images),
       colors: JSON.parse(design.colors),
@@ -263,7 +272,17 @@ export const updateDesign = async (req: Request, res: Response) => {
 
     // Prepare update data
     const updateData: any = {};
-    const { title, description, category, price, fabricType, colors, sizes, productionTime, isActive } = req.body;
+    const {
+      title,
+      description,
+      category,
+      price,
+      fabricType,
+      colors,
+      sizes,
+      productionTime,
+      isActive,
+    } = req.body;
 
     if (title) updateData.title = title;
     if (description) updateData.description = description;
@@ -271,11 +290,12 @@ export const updateDesign = async (req: Request, res: Response) => {
     if (price) updateData.price = parseFloat(price);
     if (fabricType) updateData.fabricType = fabricType;
     if (productionTime) updateData.productionTime = parseInt(productionTime);
-    if (typeof isActive !== 'undefined') updateData.isActive = isActive === 'true' || isActive === true;
+    if (typeof isActive !== 'undefined')
+      updateData.isActive = isActive === 'true' || isActive === true;
 
     // Handle new images
     if (files && files.length > 0) {
-      const imageUrls = files.map(file => `/uploads/${path.basename(file.path)}`);
+      const imageUrls = files.map((file) => `/uploads/${path.basename(file.path)}`);
       updateData.images = JSON.stringify(imageUrls);
       updateData.thumbnailUrl = imageUrls[0];
 
@@ -414,7 +434,7 @@ export const getMyDesigns = async (req: Request, res: Response) => {
     ]);
 
     // Parse JSON fields
-    const parsedDesigns = designs.map(design => ({
+    const parsedDesigns = designs.map((design) => ({
       ...design,
       images: JSON.parse(design.images),
       colors: JSON.parse(design.colors),

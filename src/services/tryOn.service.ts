@@ -33,10 +33,7 @@ class TryOnService {
   /**
    * Main try-on function with Replicate (high accuracy)
    */
-  async tryOnOutfit(
-    userImagePath: string,
-    garmentImagePath: string
-  ): Promise<TryOnResult> {
+  async tryOnOutfit(userImagePath: string, garmentImagePath: string): Promise<TryOnResult> {
     const startTime = Date.now();
 
     // Rate limit check
@@ -52,7 +49,7 @@ class TryOnService {
       if (this.replicate) {
         console.log('🎨 Using Replicate AI (High Accuracy Mode)...');
         const result = await this.tryOnWithReplicate(userImagePath, garmentImagePath);
-        
+
         if (result.success) {
           this.requestCount++;
           return {
@@ -106,16 +103,16 @@ class TryOnService {
       // Using OOTDiffusion (OutfitAnyone) - Best virtual try-on model
       // Model: levihsu/ootdiffusion
       const output = await this.replicate.run(
-        "levihsu/ootdiffusion:36ccf8cf0cc99b7184a9cb1fb26dd83b2cb63b7c83cfa06b8c1e36c0b08adaa4",
+        'levihsu/ootdiffusion:36ccf8cf0cc99b7184a9cb1fb26dd83b2cb63b7c83cfa06b8c1e36c0b08adaa4',
         {
           input: {
             model_image: userImageData,
             cloth_image: garmentImageData,
-            category: "upper_body", // Options: upper_body, lower_body, dresses
+            category: 'upper_body', // Options: upper_body, lower_body, dresses
             num_inference_steps: 20, // Balance speed vs quality
             guidance_scale: 2.0,
             seed: -1, // Random seed
-          }
+          },
         }
       );
 
@@ -158,7 +155,7 @@ class TryOnService {
       const response = await axios.post(API_URL, formData, {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': `Bearer ${this.huggingfaceApiKey}`,
+          Authorization: `Bearer ${this.huggingfaceApiKey}`,
         },
         responseType: 'arraybuffer',
         timeout: 60000, // 60 seconds
@@ -172,7 +169,7 @@ class TryOnService {
 
       const outputFileName = `tryon-${Date.now()}.png`;
       const outputPath = path.join(outputDir, outputFileName);
-      
+
       fs.writeFileSync(outputPath, response.data);
 
       // Return relative URL (you'll need to serve this via Express static)
@@ -184,7 +181,7 @@ class TryOnService {
       };
     } catch (error: any) {
       console.error('Hugging Face error:', error);
-      
+
       // Handle model loading errors
       if (error.response?.status === 503) {
         return {
@@ -204,7 +201,7 @@ class TryOnService {
     const imageBuffer = fs.readFileSync(imagePath);
     const base64Image = imageBuffer.toString('base64');
     const ext = path.extname(imagePath).toLowerCase();
-    
+
     let mimeType = 'image/jpeg';
     if (ext === '.png') mimeType = 'image/png';
     else if (ext === '.webp') mimeType = 'image/webp';
