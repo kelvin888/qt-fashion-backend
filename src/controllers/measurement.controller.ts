@@ -46,8 +46,9 @@ export const createMeasurement = async (req: Request, res: Response) => {
     const sidePhoto = files.sidePhoto?.[0];
 
     // Generate file paths relative to uploads directory
-    const frontPhotoPath = `/uploads/${frontPhoto.filename}`;
-    const sidePhotoPath = sidePhoto ? `/uploads/${sidePhoto.filename}` : null;
+    // Store photo URLs from Cloudinary
+    const frontPhotoPath = frontPhoto.path; // Cloudinary secure_url
+    const sidePhotoPath = sidePhoto ? sidePhoto.path : null;
 
     console.log('📸 Processing measurement photos...');
     console.log('Front photo:', frontPhotoPath);
@@ -224,16 +225,16 @@ export const updateMeasurement = async (req: Request, res: Response) => {
       });
     }
 
-    // Handle file uploads if provided
+    // Handle file uploads if provided - using Cloudinary
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const updateData: any = {};
 
     if (files?.frontPhoto?.[0]) {
-      updateData.frontPhoto = `/uploads/${files.frontPhoto[0].filename}`;
+      updateData.frontPhoto = (files.frontPhoto[0] as any).path; // Cloudinary URL
     }
 
     if (files?.sidePhoto?.[0]) {
-      updateData.sidePhoto = `/uploads/${files.sidePhoto[0].filename}`;
+      updateData.sidePhoto = (files.sidePhoto[0] as any).path; // Cloudinary URL
     }
 
     // Update measurements if provided

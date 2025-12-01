@@ -4,13 +4,31 @@ import { upload } from '../middleware/upload';
 import tryOnService from '../services/tryOn.service';
 import path from 'path';
 import fs from 'fs';
+import axios from 'axios';
+import { promisify } from 'util';
+import { pipeline } from 'stream';
+import os from 'os';
 
 const router = Router();
+const streamPipeline = promisify(pipeline);
 
 /**
- * Virtual Try-On Endpoint
+ * Download image from URL to temporary file
+ */
+async function downloadImageFromUrl(imageUrl: string): Promise<string> {
+  const tempDir = os.tmpdir();
+  const tempFile = path.join(tempDir, `tryon-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`);
+  
+  const response = await axios.get(imageUrl, { responseType: 'stream' });
+  await streamPipeline(response.data, fs.createWriteStream(tempFile));
+  
+  return tempFile;
+}
+
+/**
+ * Virtual Try-On Endpoint (with URL support)
  * POST /api/try-on
- * Body: multipart/form-data with 'userImage' and 'garmentImage'
+ * Body: JSON with { userImageUrl, garmentImageUrl } OR multipart/form-data with 'userImage' and 'garmentImage'
  */
 router.post(
   '/',
@@ -20,30 +38,60 @@ router.post(
     { name: 'garmentImage', maxCount: 1 },
   ]),
   async (req: Request, res: Response) => {
+    const tempFiles: string[] = [];
+
     try {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      let userImagePath: string;
+      let garmentImagePath: string;
 
-      // Validate uploads
-      if (!files || !files.userImage || !files.garmentImage) {
+      // Check if URLs are provided in body (JSON request)
+      if (req.body.userImageUrl && req.body.garmentImageUrl) {
+        console.log('🎨 Processing virtual try-on with URLs...');
+        console.log('👤 User image URL:', req.body.userImageUrl);
+        console.log('👗 Garment image URL:', req.body.garmentImageUrl);
+
+        // Download images to temp files
+        userImagePath = await downloadImageFromUrl(req.body.userImageUrl);
+        garmentImagePath = await downloadImageFromUrl(req.body.garmentImageUrl);
+        
+        tempFiles.push(userImagePath, garmentImagePath);
+
+        console.log('✅ Images downloaded successfully');
+      } else if (files && files.userImage && files.garmentImage) {
+        // Handle file uploads - Cloudinary already stored them
+        console.log('🎨 Processing virtual try-on with uploaded files...');
+        userImagePath = (files.userImage[0] as any).path; // Cloudinary URL
+        garmentImagePath = (files.garmentImage[0] as any).path; // Cloudinary URL
+        
+        // Download from Cloudinary to temp files for AI processing
+        userImagePath = await downloadImageFromUrl(userImagePath);
+        garmentImagePath = await downloadImageFromUrl(garmentImagePath);
+        
+        tempFiles.push(userImagePath, garmentImagePath);
+
+        console.log('👤 User image:', path.basename(userImagePath));
+        console.log('👗 Garment image:', path.basename(garmentImagePath));
+      } else {
         return res.status(400).json({
           success: false,
-          message: 'Both userImage and garmentImage are required',
+          message: 'Either provide userImageUrl and garmentImageUrl in JSON body, or upload userImage and garmentImage files',
         });
       }
-
-      const userImagePath = files.userImage[0].path;
-      const garmentImagePath = files.garmentImage[0].path;
-
-      console.log('🎨 Processing virtual try-on request...');
-      console.log('👤 User image:', path.basename(userImagePath));
-      console.log('👗 Garment image:', path.basename(garmentImagePath));
 
       // Process with AI
       const result = await tryOnService.tryOnOutfit(userImagePath, garmentImagePath);
 
-      // Clean up uploaded files
-      fs.unlinkSync(userImagePath);
-      fs.unlinkSync(garmentImagePath);
+      // Clean up temp files
+      tempFiles.forEach(filePath => {
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (err) {
+          console.warn('⚠️ Failed to delete temp file:', filePath);
+        }
+      });
 
       if (result.success) {
         console.log(`✅ Try-on completed in ${result.processingTime}ms using ${result.provider}`);
@@ -66,13 +114,15 @@ router.post(
       console.error('❌ Try-on route error:', error);
 
       // Clean up files on error
-      try {
-        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-        if (files?.userImage?.[0]?.path) fs.unlinkSync(files.userImage[0].path);
-        if (files?.garmentImage?.[0]?.path) fs.unlinkSync(files.garmentImage[0].path);
-      } catch (cleanupError) {
-        // Ignore cleanup errors
-      }
+      tempFiles.forEach(filePath => {
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (err) {
+          // Ignore cleanup errors
+        }
+      });
 
       res.status(500).json({
         success: false,

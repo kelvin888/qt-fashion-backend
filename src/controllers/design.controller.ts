@@ -44,8 +44,8 @@ export const createDesign = async (req: Request, res: Response) => {
       });
     }
 
-    // Process uploaded images
-    const imageUrls = files.map((file) => `/uploads/${path.basename(file.path)}`);
+    // Process uploaded images - now using Cloudinary
+    const imageUrls = files.map((file: any) => file.path); // Cloudinary returns secure_url in file.path
     const thumbnailUrl = imageUrls[0]; // First image as thumbnail
 
     // Parse arrays if they're JSON strings
@@ -293,13 +293,13 @@ export const updateDesign = async (req: Request, res: Response) => {
     if (typeof isActive !== 'undefined')
       updateData.isActive = isActive === 'true' || isActive === true;
 
-    // Handle new images
+    // Handle new images - using Cloudinary
     if (files && files.length > 0) {
-      const imageUrls = files.map((file) => `/uploads/${path.basename(file.path)}`);
+      const imageUrls = files.map((file: any) => file.path); // Cloudinary URLs
       updateData.images = JSON.stringify(imageUrls);
       updateData.thumbnailUrl = imageUrls[0];
 
-      // TODO: Delete old images
+      // TODO: Delete old images from Cloudinary using publicId
     }
 
     if (colors) {
