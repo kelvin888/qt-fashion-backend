@@ -20,10 +20,7 @@ const cloudinaryStorage = new CloudinaryStorage({
     return {
       folder: folder,
       allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-      transformation: [
-        { width: 2000, height: 2000, crop: 'limit' },
-        { quality: 'auto:good' },
-      ],
+      transformation: [{ width: 2000, height: 2000, crop: 'limit' }, { quality: 'auto:good' }],
     };
   },
 });

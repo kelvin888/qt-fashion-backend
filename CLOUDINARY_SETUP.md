@@ -3,6 +3,7 @@
 ## Why Cloudinary?
 
 Cloudinary provides free cloud image storage with:
+
 - ✅ **25 GB storage** + **25 GB bandwidth/month** (Free tier)
 - ✅ Auto CDN delivery (fast globally)
 - ✅ Built-in image optimization & transformations
@@ -19,6 +20,7 @@ Cloudinary provides free cloud image storage with:
 ### 2. Get Your Credentials
 
 After signing in:
+
 1. Go to **Dashboard** (https://cloudinary.com/console)
 2. Find your credentials in the **Account Details** section:
    - **Cloud Name**: e.g., `dxxxxxxxx`
@@ -57,11 +59,13 @@ Railway will auto-deploy with Cloudinary integration! 🚀
 ## How It Works
 
 ### Before (Local Storage)
+
 ```
 User uploads image → Saved to ./uploads folder → Lost on redeploy ❌
 ```
 
 ### After (Cloudinary)
+
 ```
 User uploads image → Uploaded to Cloudinary → Permanent cloud storage ✅
 Image URL: https://res.cloudinary.com/yourcloud/qt-fashion/designs/abc123.jpg
@@ -70,6 +74,7 @@ Image URL: https://res.cloudinary.com/yourcloud/qt-fashion/designs/abc123.jpg
 ## Image Organization
 
 Images are automatically organized in folders:
+
 - `qt-fashion/designs/` - Designer uploads
 - `qt-fashion/measurements/` - User measurement photos
 - `qt-fashion/try-on-temp/` - Temporary try-on uploads
@@ -86,11 +91,13 @@ Images are automatically organized in folders:
 ## Migration Notes
 
 ### Existing Uploads
+
 - Old images in `./uploads` folder will NOT be migrated automatically
 - They will be lost on next Railway deployment
 - **Action Required**: Manually upload important existing images via the app OR run a migration script
 
 ### Mobile App
+
 - Already updated to handle both:
   - Cloudinary URLs (new): `https://res.cloudinary.com/...`
   - Legacy local URLs (old): `https://api.railway.app/uploads/...`
@@ -99,11 +106,13 @@ Images are automatically organized in folders:
 ## Cost Estimate
 
 **Free Tier Limits**:
+
 - 25 GB storage = ~50,000 high-quality design images
 - 25 GB bandwidth = ~50,000 image views per month
 - 7,500 transformations/month
 
 **If you exceed free tier** (unlikely for MVP):
+
 - $0.12 per additional GB storage/month
 - $0.10 per additional GB bandwidth
 
@@ -112,11 +121,13 @@ Images are automatically organized in folders:
 ## Troubleshooting
 
 ### Images not uploading?
+
 1. Check Railway environment variables are set correctly
 2. Verify Cloudinary credentials on https://cloudinary.com/console
 3. Check Railway logs: `railway logs`
 
 ### Old images not showing?
+
 - Expected! Old local uploads are lost on Railway redeploys
 - Solution: Re-upload designs through the app
 

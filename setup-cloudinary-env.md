@@ -5,6 +5,7 @@
 Once you have your Cloudinary credentials, run these commands in the Railway CLI or add them in the Railway dashboard:
 
 ### Option 1: Railway Dashboard (Recommended)
+
 1. Go to: https://railway.app/dashboard
 2. Select your **qt-fashion-backend** project
 3. Click **Variables** tab
@@ -17,6 +18,7 @@ CLOUDINARY_API_SECRET=REPLACE_WITH_YOUR_API_SECRET
 ```
 
 ### Option 2: Railway CLI
+
 If you have Railway CLI installed, run:
 
 ```bash
@@ -39,6 +41,7 @@ railway variables set CLOUDINARY_API_SECRET="REPLACE_WITH_YOUR_API_SECRET"
 ## ✅ Verification Steps
 
 After adding variables:
+
 1. Railway will auto-redeploy your backend
 2. Check logs for any Cloudinary errors: `railway logs`
 3. Test by uploading a design through mobile app

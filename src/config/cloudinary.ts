@@ -59,10 +59,7 @@ export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
  * @param publicId - Cloudinary public ID
  * @param transformations - Cloudinary transformation options
  */
-export const getCloudinaryUrl = (
-  publicId: string,
-  transformations?: any
-): string => {
+export const getCloudinaryUrl = (publicId: string, transformations?: any): string => {
   return cloudinary.url(publicId, {
     secure: true,
     ...transformations,

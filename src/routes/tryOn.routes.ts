@@ -17,11 +17,14 @@ const streamPipeline = promisify(pipeline);
  */
 async function downloadImageFromUrl(imageUrl: string): Promise<string> {
   const tempDir = os.tmpdir();
-  const tempFile = path.join(tempDir, `tryon-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`);
-  
+  const tempFile = path.join(
+    tempDir,
+    `tryon-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+  );
+
   const response = await axios.get(imageUrl, { responseType: 'stream' });
   await streamPipeline(response.data, fs.createWriteStream(tempFile));
-  
+
   return tempFile;
 }
 
@@ -54,7 +57,7 @@ router.post(
         // Download images to temp files
         userImagePath = await downloadImageFromUrl(req.body.userImageUrl);
         garmentImagePath = await downloadImageFromUrl(req.body.garmentImageUrl);
-        
+
         tempFiles.push(userImagePath, garmentImagePath);
 
         console.log('✅ Images downloaded successfully');
@@ -63,11 +66,11 @@ router.post(
         console.log('🎨 Processing virtual try-on with uploaded files...');
         userImagePath = (files.userImage[0] as any).path; // Cloudinary URL
         garmentImagePath = (files.garmentImage[0] as any).path; // Cloudinary URL
-        
+
         // Download from Cloudinary to temp files for AI processing
         userImagePath = await downloadImageFromUrl(userImagePath);
         garmentImagePath = await downloadImageFromUrl(garmentImagePath);
-        
+
         tempFiles.push(userImagePath, garmentImagePath);
 
         console.log('👤 User image:', path.basename(userImagePath));
@@ -75,7 +78,8 @@ router.post(
       } else {
         return res.status(400).json({
           success: false,
-          message: 'Either provide userImageUrl and garmentImageUrl in JSON body, or upload userImage and garmentImage files',
+          message:
+            'Either provide userImageUrl and garmentImageUrl in JSON body, or upload userImage and garmentImage files',
         });
       }
 
@@ -83,7 +87,7 @@ router.post(
       const result = await tryOnService.tryOnOutfit(userImagePath, garmentImagePath);
 
       // Clean up temp files
-      tempFiles.forEach(filePath => {
+      tempFiles.forEach((filePath) => {
         try {
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
@@ -114,7 +118,7 @@ router.post(
       console.error('❌ Try-on route error:', error);
 
       // Clean up files on error
-      tempFiles.forEach(filePath => {
+      tempFiles.forEach((filePath) => {
         try {
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
