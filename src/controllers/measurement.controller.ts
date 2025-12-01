@@ -4,27 +4,45 @@ import path from 'path';
 
 const prisma = new PrismaClient();
 
-// AI-powered measurement extraction (mock for now, can be enhanced with actual AI service)
+// Simulated AI-powered measurement extraction
+// This endpoint mimics what a real AI service (like Saia or Body Labs) would return
+// Can be easily replaced with actual AI integration later without changing the API contract
 const extractMeasurementsFromPhoto = async (photoPath: string): Promise<any> => {
-  // TODO: Integrate with Google Vision AI or other body measurement AI
-  // For now, return estimated measurements based on average body proportions
-  console.log('🤖 Extracting measurements from photo:', photoPath);
+  console.log('🤖 [SIMULATED AI] Analyzing photo for measurements:', path.basename(photoPath));
 
-  // Mock AI extraction - in production, this would call an actual AI service
+  // Simulate processing time (real AI takes 2-5 seconds)
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  // Generate realistic measurements with natural variation
+  // In production, this would be replaced with actual AI service call
+  const baseChest = 90 + Math.random() * 20; // 90-110 cm
+  const baseWaist = 70 + Math.random() * 25; // 70-95 cm
+  const baseHips = 90 + Math.random() * 20; // 90-110 cm
+  const baseHeight = 160 + Math.random() * 30; // 160-190 cm
+
+  // Calculate proportional measurements
+  const shoulder = baseChest * 0.44 + Math.random() * 5; // ~44% of chest
+  const armLength = baseHeight * 0.35 + Math.random() * 5; // ~35% of height
+  const inseam = baseHeight * 0.45 + Math.random() * 5; // ~45% of height
+  const neck = baseChest * 0.38 + Math.random() * 3; // ~38% of chest
+
   return {
-    chest: 96, // cm
-    waist: 81,
-    hips: 101,
-    height: 170,
-    shoulder: 42,
-    armLength: 60,
-    inseam: 76,
-    neck: 38,
-    aiConfidenceScore: 0.85,
+    chest: Math.round(baseChest * 10) / 10, // Round to 1 decimal
+    waist: Math.round(baseWaist * 10) / 10,
+    hips: Math.round(baseHips * 10) / 10,
+    height: Math.round(baseHeight * 10) / 10,
+    shoulder: Math.round(shoulder * 10) / 10,
+    armLength: Math.round(armLength * 10) / 10,
+    inseam: Math.round(inseam * 10) / 10,
+    neck: Math.round(neck * 10) / 10,
+    aiConfidenceScore: 0.75 + Math.random() * 0.2, // 75-95% confidence
     aiMetadata: {
-      model: 'mock-ai-v1',
-      extractionMethod: 'automated',
+      model: 'simulated-ai-v1.0',
+      provider: 'qt-fashion-mock', // Change to 'saia' or 'body-labs' when upgrading
+      extractionMethod: 'automated-simulation',
+      processingTimeMs: 1500,
       timestamp: new Date().toISOString(),
+      note: 'This is a simulated AI response. Upgrade to real AI service for production.',
     },
   };
 };
