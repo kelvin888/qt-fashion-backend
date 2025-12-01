@@ -1,9 +1,9 @@
 /**
  * Migration Script: Clear Old Designs (Pre-Cloudinary)
- * 
+ *
  * This script removes all designs that were uploaded before Cloudinary integration.
  * Designers will need to re-upload their designs through the app with Cloudinary support.
- * 
+ *
  * Run this script once to clean up the database after Cloudinary migration.
  */
 
@@ -32,11 +32,11 @@ async function clearOldDesigns() {
     const oldDesigns = allDesigns.filter((design) => {
       const thumbnail = design.thumbnailUrl || '';
       const images = design.images || '[]';
-      
+
       // Check if thumbnailUrl or images contain local paths (not Cloudinary)
       const hasLocalThumbnail = thumbnail && !thumbnail.startsWith('https://res.cloudinary.com');
       const hasLocalImages = images.includes('/uploads/') || images.includes('images-');
-      
+
       return hasLocalThumbnail || hasLocalImages;
     });
 
@@ -72,7 +72,6 @@ async function clearOldDesigns() {
     console.log('   3. All images will be permanently stored in the cloud');
     console.log('');
     console.log('✨ Database cleanup complete!');
-
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
     throw error;

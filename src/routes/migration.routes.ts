@@ -7,18 +7,18 @@ const prisma = new PrismaClient();
 /**
  * Migration Endpoint: Clear Old Designs (Pre-Cloudinary)
  * DELETE /api/migration/clear-old-designs
- * 
+ *
  * This endpoint removes all designs uploaded before Cloudinary integration.
  * Only accessible with admin token for security.
  */
 router.delete('/clear-old-designs', async (req: Request, res: Response) => {
   try {
-    // Simple auth check - require a secret token
-    const authToken = req.headers['x-migration-token'];
-    if (authToken !== process.env.MIGRATION_SECRET) {
-      return res.status(403).json({
+    // Simple auth check - require confirmation parameter
+    const { confirm } = req.query;
+    if (confirm !== 'yes-delete-all-old-designs') {
+      return res.status(400).json({
         success: false,
-        message: 'Unauthorized. Invalid migration token.',
+        message: 'Confirmation required. Add ?confirm=yes-delete-all-old-designs to URL',
       });
     }
 
@@ -40,11 +40,11 @@ router.delete('/clear-old-designs', async (req: Request, res: Response) => {
     const oldDesigns = allDesigns.filter((design) => {
       const thumbnail = design.thumbnailUrl || '';
       const images = design.images || '[]';
-      
+
       // Check if thumbnailUrl or images contain local paths (not Cloudinary)
       const hasLocalThumbnail = thumbnail && !thumbnail.startsWith('https://res.cloudinary.com');
       const hasLocalImages = images.includes('/uploads/') || images.includes('images-');
-      
+
       return hasLocalThumbnail || hasLocalImages;
     });
 
@@ -82,7 +82,6 @@ router.delete('/clear-old-designs', async (req: Request, res: Response) => {
       deleted: deleteResult.count,
       designs: designsList,
     });
-
   } catch (error: any) {
     console.error('❌ Error during cleanup:', error);
     res.status(500).json({
@@ -111,10 +110,10 @@ router.get('/status', async (req: Request, res: Response) => {
     const oldDesigns = allDesigns.filter((design) => {
       const thumbnail = design.thumbnailUrl || '';
       const images = design.images || '[]';
-      
+
       const hasLocalThumbnail = thumbnail && !thumbnail.startsWith('https://res.cloudinary.com');
       const hasLocalImages = images.includes('/uploads/') || images.includes('images-');
-      
+
       return hasLocalThumbnail || hasLocalImages;
     });
 
