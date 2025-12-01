@@ -11,7 +11,7 @@ const extractMeasurementsFromPhoto = async (photoPath: string): Promise<any> => 
   console.log('🤖 [SIMULATED AI] Analyzing photo for measurements:', path.basename(photoPath));
 
   // Simulate processing time (real AI takes 2-5 seconds)
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
 
   // Generate realistic measurements with natural variation
   // In production, this would be replaced with actual AI service call
