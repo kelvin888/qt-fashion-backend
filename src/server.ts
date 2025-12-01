@@ -9,6 +9,7 @@ import measurementRoutes from './routes/measurement.routes';
 import designRoutes from './routes/design.routes';
 import tryOnRoutes from './routes/tryOn.routes';
 import orderRoutes from './routes/order.routes';
+import migrationRoutes from './routes/migration.routes';
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +59,7 @@ app.use('/api/measurements', measurementRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/try-on', tryOnRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/migration', migrationRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
