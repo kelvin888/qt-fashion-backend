@@ -133,10 +133,13 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
+      console.log('🔍 CODE VERSION: 2025-12-02-v3 (Array-first fix)');
 
       // Replicate output format (based on actual API response):
       // The model returns a direct string URL in most cases
       console.log('📦 Replicate raw output type:', typeof output);
+      console.log('📦 Is Array?', Array.isArray(output));
+      console.log('📦 Constructor:', output?.constructor?.name);
 
       let imageUrl: string | undefined;
 
@@ -148,11 +151,14 @@ class TryOnService {
       // Handle array of URLs (SDXL returns this)
       else if (Array.isArray(output)) {
         console.log('✓ Output is array, length:', output.length);
+        console.log('✓ First element type:', typeof output[0]);
+        console.log('✓ First element value:', output[0]);
         if (output.length > 0 && typeof output[0] === 'string') {
           imageUrl = output[0];
           console.log('✓ Extracted URL from array:', imageUrl);
         } else {
           console.error('❌ Array is empty or first element is not a string');
+          console.error('❌ Array contents:', JSON.stringify(output));
         }
       }
       // Handle ReadableStream or AsyncIterable (need to collect chunks)
