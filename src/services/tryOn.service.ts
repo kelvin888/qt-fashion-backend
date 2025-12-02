@@ -3,6 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
+import { uploadToCloudinary } from '../config/cloudinary';
 
 interface TryOnResult {
   success: boolean;
@@ -133,33 +134,70 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v12 (HANDLE READABLESTREAM)');
+      console.log('🔍 CODE VERSION: 2025-12-02-v13 (SAVE BINARY & UPLOAD)');
       console.log('📦 Raw output type:', typeof output);
       console.log('📦 Is array:', Array.isArray(output));
 
       let imageUrl: string | undefined;
 
-      // Handle ReadableStream (IDM-VTON returns this)
+      // Handle ReadableStream with BINARY data (IDM-VTON returns image bytes)
       if (output && typeof output === 'object' && 'getReader' in output) {
-        console.log('📦 Output is ReadableStream, consuming stream...');
+        console.log('📦 Output is ReadableStream, consuming binary stream...');
         const reader = (output as any).getReader();
-        const chunks: string[] = [];
-        const decoder = new TextDecoder();
+        const chunks: Uint8Array[] = [];
 
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             if (value) {
-              const text = decoder.decode(value, { stream: true });
-              chunks.push(text);
+              chunks.push(value);
             }
           }
-          const fullText = chunks.join('');
-          console.log('📦 Stream content:', fullText.substring(0, 300));
 
-          // The stream should contain a URL
-          imageUrl = fullText.trim();
+          // Combine all chunks into single buffer
+          const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+          const imageBuffer = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunks) {
+            imageBuffer.set(chunk, offset);
+            offset += chunk.length;
+          }
+
+          console.log('📦 Stream consumed, total bytes:', imageBuffer.length);
+          console.log('📦 First few bytes:', imageBuffer.slice(0, 20));
+
+          // Check if it's binary image data (starts with JPEG/PNG magic bytes)
+          const isJPEG = imageBuffer[0] === 0xff && imageBuffer[1] === 0xd8;
+          const isPNG = imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50;
+
+          if (isJPEG || isPNG) {
+            console.log('📦 Binary image detected, saving to file...');
+            
+            // Save to temp file
+            const tempFileName = `tryon-result-${Date.now()}.${isJPEG ? 'jpg' : 'png'}`;
+            const tempFilePath = path.join('/tmp', tempFileName);
+            fs.writeFileSync(tempFilePath, Buffer.from(imageBuffer));
+            console.log('📦 Temp file saved:', tempFilePath);
+
+            // Upload to Cloudinary
+            console.log('📦 Uploading to Cloudinary...');
+            const uploadResult = await uploadToCloudinary(tempFilePath, 'try-on-results');
+            imageUrl = uploadResult.url;
+            console.log('📦 Cloudinary URL:', imageUrl);
+
+            // Clean up temp file
+            fs.unlinkSync(tempFilePath);
+            console.log('📦 Temp file cleaned up');
+          } else {
+            // Try as text (maybe it's a URL string after all)
+            const decoder = new TextDecoder();
+            const text = decoder.decode(imageBuffer);
+            console.log('📦 Decoded as text:', text.substring(0, 200));
+            if (text.startsWith('http')) {
+              imageUrl = text.trim();
+            }
+          }
         } catch (error) {
           console.error('❌ Error reading stream:', error);
         }
