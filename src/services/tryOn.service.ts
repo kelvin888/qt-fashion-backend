@@ -133,29 +133,53 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v4 (SIMPLE FIX)');
+      console.log('🔍 CODE VERSION: 2025-12-02-v5 (STREAM FIX)');
 
       let imageUrl: string | undefined;
 
-      // Simple, direct approach - just get the URL string
-      if (typeof output === 'string') {
+      // Check if output is an iterable/stream (most common with replicate.run)
+      if (output && typeof output === 'object' && Symbol.asyncIterator in output) {
+        console.log('📦 Output is async iterable (stream)');
+        const results: any[] = [];
+        
+        // Collect all chunks from the stream
+        for await (const chunk of output as any) {
+          console.log('📦 Chunk received:', typeof chunk);
+          results.push(chunk);
+        }
+        
+        console.log('📦 Total chunks collected:', results.length);
+        
+        // The result should be in the last chunk or as an array
+        if (results.length > 0) {
+          const lastResult = results[results.length - 1];
+          if (typeof lastResult === 'string' && lastResult.startsWith('http')) {
+            imageUrl = lastResult;
+          } else if (Array.isArray(lastResult) && lastResult.length > 0) {
+            imageUrl = lastResult[0];
+          } else {
+            // Sometimes each chunk is a URL
+            imageUrl = results.find(r => typeof r === 'string' && r.startsWith('http'));
+          }
+        }
+      }
+      // Direct string
+      else if (typeof output === 'string') {
+        console.log('📦 Output is direct string');
         imageUrl = output;
-      } else if (Array.isArray(output) && output.length > 0) {
-        // For arrays, get first element (SDXL format)
+      }
+      // Array of strings
+      else if (Array.isArray(output) && output.length > 0 && typeof output[0] === 'string') {
+        console.log('📦 Output is array of strings');
         imageUrl = output[0];
-      } else if (output && typeof output === 'object') {
-        // For objects, try common properties
-        const obj = output as any;
-        imageUrl = obj.image || obj.output || obj.url || obj[0];
       }
 
-      console.log('📦 Output type:', typeof output);
-      console.log('📦 Is array:', Array.isArray(output));
       console.log('📦 Extracted URL:', imageUrl);
 
       if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
         console.error('❌ Invalid URL extracted');
-        console.error('❌ Raw output:', JSON.stringify(output).substring(0, 500));
+        console.error('❌ Output type:', typeof output);
+        console.error('❌ Has asyncIterator:', output && typeof output === 'object' && Symbol.asyncIterator in output);
         throw new Error('Invalid output from Replicate API');
       }
 
