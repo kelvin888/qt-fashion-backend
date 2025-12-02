@@ -112,22 +112,22 @@ class TryOnService {
       // Using Generative AI for Virtual Try-On (Similar to CREATE AI approach)
       // This generates a realistic photo of the person wearing the outfit
       // Works better for full outfits than traditional virtual try-on models
-      console.log('🚀 Using Generative AI Virtual Try-On...');
+      console.log('🚀 Using Generative AI Virtual Try-On (SDXL + ControlNet)...');
       console.log('ℹ️  Approach: Generate realistic image of person wearing the design');
 
-      // Using FLUX for high-quality generative results
+      // Using Stable Diffusion XL with img2img for realistic try-on
       const output = await this.replicate.run(
-        'black-forest-labs/flux-dev:f5c7c40b4e9e42fb77e575fa6f1a7a42d2b33b1e8c9c0f1a2b3c4d5e6f7g8h9i0j',
+        'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
         {
           input: {
-            prompt: `A professional full-body photograph of the person in the first image wearing the complete outfit from the second image. The person should be wearing the exact design including both top and bottom garments. Natural lighting, high quality, realistic photography style, full body visible, standing pose`,
+            prompt: `professional full body photograph of this person wearing the complete outfit shown in the design image, exact clothing design, both top and bottom garments visible, natural lighting, high quality, realistic, standing pose, full body shot`,
             image: userImageData,
-            guidance: 3.5,
+            strength: 0.6, // How much to transform the original image
             num_outputs: 1,
-            aspect_ratio: '3:4',
-            output_format: 'jpg',
-            output_quality: 90,
-            num_inference_steps: 28,
+            guidance_scale: 7.5,
+            num_inference_steps: 30,
+            refine: 'expert_ensemble_refiner',
+            scheduler: 'K_EULER',
           },
         }
       );
