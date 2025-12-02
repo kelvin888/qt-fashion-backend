@@ -116,7 +116,7 @@ class TryOnService {
       console.log('ℹ️  Approach: Generate realistic image of person wearing the design');
 
       // Using Stable Diffusion XL with img2img for realistic try-on
-      const output = await this.replicate.run(
+      const output: any = await this.replicate.run(
         'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
         {
           input: {
@@ -133,52 +133,39 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v7 (AWAIT ARRAY ELEMENTS)');
+      console.log('🔍 CODE VERSION: 2025-12-02-v8 (HANDLE URL OR BINARY)');
 
       let imageUrl: string | undefined;
 
-      // The output is typically an array where elements might be streams/promises
+      // Check output type
       if (Array.isArray(output) && output.length > 0) {
         console.log('📦 Array with', output.length, 'elements');
-        console.log('📦 Element[0] type:', typeof output[0]);
-        console.log('📦 Element[0] constructor:', output[0]?.constructor?.name);
-        
         const firstElement = output[0];
+        console.log('📦 Element type:', typeof firstElement);
         
-        // Check if it's a ReadableStream
-        if (firstElement && typeof firstElement === 'object' && 'getReader' in firstElement) {
-          console.log('📦 Element is ReadableStream, reading...');
-          const reader = (firstElement as any).getReader();
-          const chunks: Uint8Array[] = [];
-          
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (value) chunks.push(value);
-          }
-          
-          // Convert chunks to string
-          const decoder = new TextDecoder();
-          const text = chunks.map(chunk => decoder.decode(chunk)).join('');
-          console.log('📦 Stream content:', text.substring(0, 200));
-          imageUrl = text.trim();
-        }
-        // Direct string
-        else if (typeof firstElement === 'string') {
-          console.log('📦 Element is string');
+        // Direct string URL
+        if (typeof firstElement === 'string' && firstElement.startsWith('http')) {
+          console.log('📦 Element is URL string');
           imageUrl = firstElement;
         }
+        // FileOutput object with url property
+        else if (firstElement && typeof firstElement === 'object' && 'url' in firstElement) {
+          console.log('📦 Element is FileOutput object');
+          imageUrl = (firstElement as any).url;
+        }
       }
-      // Direct string
-      else if (typeof output === 'string') {
-        console.log('📦 Direct string output');
+      // Direct string URL
+      else if (typeof output === 'string' && output.startsWith('http')) {
+        console.log('📦 Direct URL string');
         imageUrl = output;
       }
 
-      console.log('📦 Final URL:', imageUrl);
+      console.log('📦 Extracted URL:', imageUrl);
 
-      if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-        console.error('❌ Invalid URL');
+      if (!imageUrl || !imageUrl.startsWith('http')) {
+        console.error('❌ Invalid or missing URL');
+        console.error('❌ Output type:', typeof output);
+        console.error('❌ Output:', JSON.stringify(output).substring(0, 500));
         throw new Error('Invalid output from Replicate API');
       }
 
