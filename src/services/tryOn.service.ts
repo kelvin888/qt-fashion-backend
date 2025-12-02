@@ -104,18 +104,20 @@ class TryOnService {
       const userImageData = this.imageToDataUri(userImagePath);
       const garmentImageData = this.imageToDataUri(garmentImagePath);
 
-      // Using OOTDiffusion (OutfitAnyone) - Best virtual try-on model
-      // Model: levihsu/ootdiffusion
+      // Using IDM-VTON (Virtual Try-On) - Stable and reliable model
+      // Model: cuuupid/idm-vton
+      // This is a production-ready virtual try-on model
       const output = await this.replicate.run(
-        'levihsu/ootdiffusion:36ccf8cf0cc99b7184a9cb1fb26dd83b2cb63b7c83cfa06b8c1e36c0b08adaa4',
+        'cuuupid/idm-vton:c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4',
         {
           input: {
-            model_image: userImageData,
-            cloth_image: garmentImageData,
-            category: 'upper_body', // Options: upper_body, lower_body, dresses
-            num_inference_steps: 20, // Balance speed vs quality
-            guidance_scale: 2.0,
-            seed: -1, // Random seed
+            human_img: userImageData,
+            garm_img: garmentImageData,
+            garment_des: 'clothing item', // Description of the garment
+            is_checked: true,
+            is_checked_crop: false,
+            denoise_steps: 30,
+            seed: 42,
           },
         }
       );
