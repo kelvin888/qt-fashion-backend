@@ -52,7 +52,7 @@ class TryOnService {
         console.log('🎨 Using Replicate AI (High Accuracy Mode)...');
         console.log('📸 User image:', userImagePath);
         console.log('👗 Garment image:', garmentImagePath);
-        
+
         const result = await this.tryOnWithReplicate(userImagePath, garmentImagePath);
 
         if (result.success) {
@@ -114,7 +114,7 @@ class TryOnService {
       // This model supports FULL OUTFITS including both tops and bottoms
       console.log('🚀 Calling Replicate Kolors Virtual Try-On model...');
       console.log('ℹ️  This model supports full-body outfit try-on');
-      
+
       const output = await this.replicate.run(
         'kwai-kolors/kolors-virtual-try-on:e20c1e369742d00c01bec9c9e0c1127e9612a4031954534bfeb3f0bf13ad73f4',
         {
@@ -133,7 +133,10 @@ class TryOnService {
       // Replicate output format (based on actual API response):
       // The model returns a direct string URL in most cases
       console.log('📦 Replicate raw output type:', typeof output);
-      console.log('📦 Replicate raw output:', typeof output === 'string' ? output : JSON.stringify(output, null, 2));
+      console.log(
+        '📦 Replicate raw output:',
+        typeof output === 'string' ? output : JSON.stringify(output, null, 2)
+      );
 
       let imageUrl: string | undefined;
 
@@ -141,21 +144,22 @@ class TryOnService {
       if (typeof output === 'string') {
         console.log('✓ Output is direct URL string');
         imageUrl = output;
-      } 
+      }
       // Handle array of URLs
       else if (Array.isArray(output)) {
         console.log('✓ Output is array, length:', output.length);
         imageUrl = output[0];
-      } 
+      }
       // Handle object response
       else if (output && typeof output === 'object') {
         console.log('✓ Output is object with keys:', Object.keys(output));
         // Try multiple possible property names
-        imageUrl = (output as any).image || 
-                   (output as any).output || 
-                   (output as any).url ||
-                   (output as any).result ||
-                   (output as any).data;
+        imageUrl =
+          (output as any).image ||
+          (output as any).output ||
+          (output as any).url ||
+          (output as any).result ||
+          (output as any).data;
       }
 
       if (!imageUrl || typeof imageUrl !== 'string') {
