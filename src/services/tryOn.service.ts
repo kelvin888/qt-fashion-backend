@@ -109,25 +109,25 @@ class TryOnService {
       const userImageData = this.imageToDataUri(userImagePath);
       const garmentImageData = this.imageToDataUri(garmentImagePath);
 
-      // Using Generative AI for Virtual Try-On (Similar to CREATE AI approach)
-      // This generates a realistic photo of the person wearing the outfit
-      // Works better for full outfits than traditional virtual try-on models
-      console.log('🚀 Using Generative AI Virtual Try-On (SDXL + ControlNet)...');
-      console.log('ℹ️  Approach: Generate realistic image of person wearing the design');
+      // Using Generative AI Virtual Try-On
+      // Using a model that takes BOTH user image AND garment image
+      console.log('🚀 Using AI Virtual Try-On...');
+      console.log('👤 User image:', userImagePath);
+      console.log('👗 Garment image:', garmentImagePath);
 
-      // Using Stable Diffusion XL with img2img for realistic try-on
+      // Try using IDM-VTON which is designed for virtual try-on
+      // It takes both person image and garment image
       const output: any = await this.replicate.run(
-        'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
+        'cuuupid/idm-vton:c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4',
         {
           input: {
-            prompt: `professional full body photograph of this person wearing the complete outfit shown in the design image, exact clothing design, both top and bottom garments visible, natural lighting, high quality, realistic, standing pose, full body shot`,
-            image: userImageData,
-            strength: 0.6, // How much to transform the original image
-            num_outputs: 1,
-            guidance_scale: 7.5,
-            num_inference_steps: 30,
-            refine: 'expert_ensemble_refiner',
-            scheduler: 'K_EULER',
+            garm_img: garmentImageData, // Garment/design to wear
+            human_img: userImageData, // User photo
+            garment_des: 'complete outfit with top and bottom', // Description
+            is_checked: true,
+            is_checked_crop: false,
+            denoise_steps: 30,
+            seed: 42,
           },
         }
       );
@@ -156,12 +156,12 @@ class TryOnService {
           if (typeof (firstElement as any).url === 'function') {
             console.log('📦 url is a function, calling it...');
             let urlResult = (firstElement as any).url();
-            
+
             // Check if it returns a promise
             if (urlResult && typeof urlResult.then === 'function') {
               urlResult = await urlResult;
             }
-            
+
             // Convert URL object to string if needed
             if (urlResult && typeof urlResult === 'object' && 'href' in urlResult) {
               console.log('📦 URL is an object with href property');
