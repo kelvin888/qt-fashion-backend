@@ -137,23 +137,42 @@ class TryOnService {
       // Replicate output format (based on actual API response):
       // The model returns a direct string URL in most cases
       console.log('📦 Replicate raw output type:', typeof output);
-      
+
       let imageUrl: string | undefined;
 
+      // Handle direct string URL (most common)
+      if (typeof output === 'string') {
+        console.log('✓ Output is direct URL string');
+        imageUrl = output;
+      }
+      // Handle array of URLs (SDXL returns this)
+      else if (Array.isArray(output)) {
+        console.log('✓ Output is array, length:', output.length);
+        if (output.length > 0 && typeof output[0] === 'string') {
+          imageUrl = output[0];
+          console.log('✓ Extracted URL from array:', imageUrl);
+        } else {
+          console.error('❌ Array is empty or first element is not a string');
+        }
+      }
       // Handle ReadableStream or AsyncIterable (need to collect chunks)
-      if (output && typeof output === 'object' && (Symbol.asyncIterator in output || 'getReader' in output)) {
+      else if (
+        output &&
+        typeof output === 'object' &&
+        (Symbol.asyncIterator in output || 'getReader' in output)
+      ) {
         console.log('✓ Output is stream/iterable, collecting chunks...');
         const chunks: any[] = [];
-        
+
         // Handle async iterable (most common with replicate.run)
         if (Symbol.asyncIterator in output) {
           for await (const chunk of output as any) {
             chunks.push(chunk);
           }
         }
-        
+
         console.log('✓ Collected chunks:', chunks.length);
-        
+
         // The last chunk usually contains the final URL(s)
         if (chunks.length > 0) {
           const lastChunk = chunks[chunks.length - 1];
@@ -163,16 +182,6 @@ class TryOnService {
             imageUrl = lastChunk[0];
           }
         }
-      }
-      // Handle direct string URL
-      else if (typeof output === 'string') {
-        console.log('✓ Output is direct URL string');
-        imageUrl = output;
-      }
-      // Handle array of URLs
-      else if (Array.isArray(output)) {
-        console.log('✓ Output is array, length:', output.length);
-        imageUrl = output[0];
       }
       // Handle object response
       else if (output && typeof output === 'object') {
@@ -190,6 +199,7 @@ class TryOnService {
         console.error('❌ Could not extract image URL from Replicate output');
         console.error('❌ Output type:', typeof output);
         console.error('❌ Output constructor:', output?.constructor?.name);
+        console.error('❌ Output value:', JSON.stringify(output).substring(0, 200));
         throw new Error(`Invalid output from Replicate API`);
       }
 
