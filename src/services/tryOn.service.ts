@@ -133,26 +133,34 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v10 (URL OBJECT TO STRING)');
+      console.log('🔍 CODE VERSION: 2025-12-02-v11 (IDM-VTON OUTPUT DEBUG)');
+      console.log('📦 Raw output type:', typeof output);
+      console.log('📦 Is array:', Array.isArray(output));
+      console.log('📦 Output value:', output);
+      console.log('📦 Output stringified:', JSON.stringify(output).substring(0, 500));
 
       let imageUrl: string | undefined;
 
-      // Check output type
-      if (Array.isArray(output) && output.length > 0) {
+      // IDM-VTON typically returns a direct string URL or array with single URL
+      if (typeof output === 'string') {
+        console.log('📦 Direct string output');
+        imageUrl = output;
+      } else if (Array.isArray(output) && output.length > 0) {
         console.log('📦 Array with', output.length, 'elements');
         const firstElement = output[0];
-        console.log('📦 Element type:', typeof firstElement);
+        console.log('📦 First element type:', typeof firstElement);
+        console.log('📦 First element value:', firstElement);
 
         // Direct string URL
-        if (typeof firstElement === 'string' && firstElement.startsWith('http')) {
-          console.log('📦 Element is URL string');
+        if (typeof firstElement === 'string') {
+          console.log('📦 Element is string URL');
           imageUrl = firstElement;
         }
-        // FileOutput object with url property/method
+        // FileOutput object (SDXL style)
         else if (firstElement && typeof firstElement === 'object') {
           console.log('📦 Element is object, checking url property...');
 
-          // Try calling url() if it's a function
+          // Try calling url() if it's a function (SDXL style)
           if (typeof (firstElement as any).url === 'function') {
             console.log('📦 url is a function, calling it...');
             let urlResult = (firstElement as any).url();
@@ -169,7 +177,6 @@ class TryOnService {
             } else if (typeof urlResult === 'string') {
               imageUrl = urlResult;
             } else if (urlResult) {
-              // Try toString
               imageUrl = String(urlResult);
             }
           }
@@ -177,7 +184,6 @@ class TryOnService {
           else if ('url' in firstElement) {
             console.log('📦 url is a property');
             const urlValue = (firstElement as any).url;
-            // Handle URL object
             if (urlValue && typeof urlValue === 'object' && 'href' in urlValue) {
               imageUrl = urlValue.href;
             } else {
@@ -187,17 +193,12 @@ class TryOnService {
           // Try toString() as fallback
           else if (typeof firstElement.toString === 'function') {
             const strValue = firstElement.toString();
-            if (strValue.startsWith('http')) {
+            if (strValue && strValue.startsWith('http')) {
               console.log('📦 Using toString() value');
               imageUrl = strValue;
             }
           }
         }
-      }
-      // Direct string URL
-      else if (typeof output === 'string' && output.startsWith('http')) {
-        console.log('📦 Direct URL string');
-        imageUrl = output;
       }
 
       console.log('📦 Final imageUrl:', imageUrl);
