@@ -133,7 +133,7 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v9 (CALL URL METHOD)');
+      console.log('🔍 CODE VERSION: 2025-12-02-v10 (URL OBJECT TO STRING)');
 
       let imageUrl: string | undefined;
 
@@ -142,7 +142,6 @@ class TryOnService {
         console.log('📦 Array with', output.length, 'elements');
         const firstElement = output[0];
         console.log('📦 Element type:', typeof firstElement);
-        console.log('📦 Element keys:', Object.keys(firstElement || {}));
 
         // Direct string URL
         if (typeof firstElement === 'string' && firstElement.startsWith('http')) {
@@ -152,24 +151,40 @@ class TryOnService {
         // FileOutput object with url property/method
         else if (firstElement && typeof firstElement === 'object') {
           console.log('📦 Element is object, checking url property...');
-          
+
           // Try calling url() if it's a function
           if (typeof (firstElement as any).url === 'function') {
             console.log('📦 url is a function, calling it...');
-            const urlResult = (firstElement as any).url();
+            let urlResult = (firstElement as any).url();
+            
             // Check if it returns a promise
             if (urlResult && typeof urlResult.then === 'function') {
-              imageUrl = await urlResult;
-            } else {
+              urlResult = await urlResult;
+            }
+            
+            // Convert URL object to string if needed
+            if (urlResult && typeof urlResult === 'object' && 'href' in urlResult) {
+              console.log('📦 URL is an object with href property');
+              imageUrl = urlResult.href;
+            } else if (typeof urlResult === 'string') {
               imageUrl = urlResult;
+            } else if (urlResult) {
+              // Try toString
+              imageUrl = String(urlResult);
             }
           }
           // Direct property access
           else if ('url' in firstElement) {
             console.log('📦 url is a property');
-            imageUrl = (firstElement as any).url;
+            const urlValue = (firstElement as any).url;
+            // Handle URL object
+            if (urlValue && typeof urlValue === 'object' && 'href' in urlValue) {
+              imageUrl = urlValue.href;
+            } else {
+              imageUrl = urlValue;
+            }
           }
-          // Try toString() as fallback (FileOutput might have this)
+          // Try toString() as fallback
           else if (typeof firstElement.toString === 'function') {
             const strValue = firstElement.toString();
             if (strValue.startsWith('http')) {
@@ -185,13 +200,13 @@ class TryOnService {
         imageUrl = output;
       }
 
-      console.log('📦 Extracted URL:', imageUrl);
-      console.log('📦 URL type:', typeof imageUrl);
+      console.log('📦 Final imageUrl:', imageUrl);
+      console.log('📦 Final URL type:', typeof imageUrl);
 
       if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
         console.error('❌ Invalid or missing URL');
-        console.error('❌ Output type:', typeof output);
-        console.error('❌ Output:', JSON.stringify(output).substring(0, 500));
+        console.error('❌ imageUrl value:', imageUrl);
+        console.error('❌ imageUrl type:', typeof imageUrl);
         throw new Error('Invalid output from Replicate API');
       }
 
