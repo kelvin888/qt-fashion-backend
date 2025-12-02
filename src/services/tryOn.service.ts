@@ -133,80 +133,30 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v3 (Array-first fix)');
-
-      // Replicate output format (based on actual API response):
-      // The model returns a direct string URL in most cases
-      console.log('📦 Replicate raw output type:', typeof output);
-      console.log('📦 Is Array?', Array.isArray(output));
-      console.log('📦 Constructor:', output?.constructor?.name);
+      console.log('🔍 CODE VERSION: 2025-12-02-v4 (SIMPLE FIX)');
 
       let imageUrl: string | undefined;
 
-      // Handle direct string URL (most common)
+      // Simple, direct approach - just get the URL string
       if (typeof output === 'string') {
-        console.log('✓ Output is direct URL string');
         imageUrl = output;
-      }
-      // Handle array of URLs (SDXL returns this)
-      else if (Array.isArray(output)) {
-        console.log('✓ Output is array, length:', output.length);
-        console.log('✓ First element type:', typeof output[0]);
-        console.log('✓ First element value:', output[0]);
-        if (output.length > 0 && typeof output[0] === 'string') {
-          imageUrl = output[0];
-          console.log('✓ Extracted URL from array:', imageUrl);
-        } else {
-          console.error('❌ Array is empty or first element is not a string');
-          console.error('❌ Array contents:', JSON.stringify(output));
-        }
-      }
-      // Handle ReadableStream or AsyncIterable (need to collect chunks)
-      else if (
-        output &&
-        typeof output === 'object' &&
-        (Symbol.asyncIterator in output || 'getReader' in output)
-      ) {
-        console.log('✓ Output is stream/iterable, collecting chunks...');
-        const chunks: any[] = [];
-
-        // Handle async iterable (most common with replicate.run)
-        if (Symbol.asyncIterator in output) {
-          for await (const chunk of output as any) {
-            chunks.push(chunk);
-          }
-        }
-
-        console.log('✓ Collected chunks:', chunks.length);
-
-        // The last chunk usually contains the final URL(s)
-        if (chunks.length > 0) {
-          const lastChunk = chunks[chunks.length - 1];
-          if (typeof lastChunk === 'string') {
-            imageUrl = lastChunk;
-          } else if (Array.isArray(lastChunk)) {
-            imageUrl = lastChunk[0];
-          }
-        }
-      }
-      // Handle object response
-      else if (output && typeof output === 'object') {
-        console.log('✓ Output is object with keys:', Object.keys(output));
-        // Try multiple possible property names
-        imageUrl =
-          (output as any).image ||
-          (output as any).output ||
-          (output as any).url ||
-          (output as any).result ||
-          (output as any).data;
+      } else if (Array.isArray(output) && output.length > 0) {
+        // For arrays, get first element (SDXL format)
+        imageUrl = output[0];
+      } else if (output && typeof output === 'object') {
+        // For objects, try common properties
+        const obj = output as any;
+        imageUrl = obj.image || obj.output || obj.url || obj[0];
       }
 
-      if (!imageUrl || typeof imageUrl !== 'string') {
-        console.error('❌ Could not extract image URL from Replicate output');
-        console.error('❌ Output type:', typeof output);
-        console.error('❌ Output constructor:', output?.constructor?.name);
-        console.error('❌ Output value:', JSON.stringify(output).substring(0, 200));
-        throw new Error(`Invalid output from Replicate API`);
+      console.log('📦 Output type:', typeof output);
+      console.log('📦 Is array:', Array.isArray(output));
+      console.log('📦 Extracted URL:', imageUrl);
+
+      if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+        console.error('❌ Invalid URL extracted');
+        console.error('❌ Raw output:', JSON.stringify(output).substring(0, 500));
+        throw new Error('Invalid output from Replicate API');
       }
 
       console.log('✅ Generated try-on image URL:', imageUrl);
