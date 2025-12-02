@@ -133,7 +133,7 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v8 (HANDLE URL OR BINARY)');
+      console.log('🔍 CODE VERSION: 2025-12-02-v9 (CALL URL METHOD)');
 
       let imageUrl: string | undefined;
 
@@ -142,16 +142,41 @@ class TryOnService {
         console.log('📦 Array with', output.length, 'elements');
         const firstElement = output[0];
         console.log('📦 Element type:', typeof firstElement);
-        
+        console.log('📦 Element keys:', Object.keys(firstElement || {}));
+
         // Direct string URL
         if (typeof firstElement === 'string' && firstElement.startsWith('http')) {
           console.log('📦 Element is URL string');
           imageUrl = firstElement;
         }
-        // FileOutput object with url property
-        else if (firstElement && typeof firstElement === 'object' && 'url' in firstElement) {
-          console.log('📦 Element is FileOutput object');
-          imageUrl = (firstElement as any).url;
+        // FileOutput object with url property/method
+        else if (firstElement && typeof firstElement === 'object') {
+          console.log('📦 Element is object, checking url property...');
+          
+          // Try calling url() if it's a function
+          if (typeof (firstElement as any).url === 'function') {
+            console.log('📦 url is a function, calling it...');
+            const urlResult = (firstElement as any).url();
+            // Check if it returns a promise
+            if (urlResult && typeof urlResult.then === 'function') {
+              imageUrl = await urlResult;
+            } else {
+              imageUrl = urlResult;
+            }
+          }
+          // Direct property access
+          else if ('url' in firstElement) {
+            console.log('📦 url is a property');
+            imageUrl = (firstElement as any).url;
+          }
+          // Try toString() as fallback (FileOutput might have this)
+          else if (typeof firstElement.toString === 'function') {
+            const strValue = firstElement.toString();
+            if (strValue.startsWith('http')) {
+              console.log('📦 Using toString() value');
+              imageUrl = strValue;
+            }
+          }
         }
       }
       // Direct string URL
@@ -161,8 +186,9 @@ class TryOnService {
       }
 
       console.log('📦 Extracted URL:', imageUrl);
+      console.log('📦 URL type:', typeof imageUrl);
 
-      if (!imageUrl || !imageUrl.startsWith('http')) {
+      if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
         console.error('❌ Invalid or missing URL');
         console.error('❌ Output type:', typeof output);
         console.error('❌ Output:', JSON.stringify(output).substring(0, 500));
