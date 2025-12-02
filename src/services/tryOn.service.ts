@@ -137,15 +137,35 @@ class TryOnService {
       // Replicate output format (based on actual API response):
       // The model returns a direct string URL in most cases
       console.log('📦 Replicate raw output type:', typeof output);
-      console.log(
-        '📦 Replicate raw output:',
-        typeof output === 'string' ? output : JSON.stringify(output, null, 2)
-      );
-
+      
       let imageUrl: string | undefined;
 
-      // Handle direct string URL (most common)
-      if (typeof output === 'string') {
+      // Handle ReadableStream or AsyncIterable (need to collect chunks)
+      if (output && typeof output === 'object' && (Symbol.asyncIterator in output || 'getReader' in output)) {
+        console.log('✓ Output is stream/iterable, collecting chunks...');
+        const chunks: any[] = [];
+        
+        // Handle async iterable (most common with replicate.run)
+        if (Symbol.asyncIterator in output) {
+          for await (const chunk of output as any) {
+            chunks.push(chunk);
+          }
+        }
+        
+        console.log('✓ Collected chunks:', chunks.length);
+        
+        // The last chunk usually contains the final URL(s)
+        if (chunks.length > 0) {
+          const lastChunk = chunks[chunks.length - 1];
+          if (typeof lastChunk === 'string') {
+            imageUrl = lastChunk;
+          } else if (Array.isArray(lastChunk)) {
+            imageUrl = lastChunk[0];
+          }
+        }
+      }
+      // Handle direct string URL
+      else if (typeof output === 'string') {
         console.log('✓ Output is direct URL string');
         imageUrl = output;
       }
@@ -169,7 +189,7 @@ class TryOnService {
       if (!imageUrl || typeof imageUrl !== 'string') {
         console.error('❌ Could not extract image URL from Replicate output');
         console.error('❌ Output type:', typeof output);
-        console.error('❌ Output value:', output);
+        console.error('❌ Output constructor:', output?.constructor?.name);
         throw new Error(`Invalid output from Replicate API`);
       }
 
