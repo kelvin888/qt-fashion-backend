@@ -133,7 +133,13 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v5 (STREAM FIX)');
+      console.log('🔍 CODE VERSION: 2025-12-02-v6 (COMPREHENSIVE DEBUG)');
+      console.log('📦 Output type:', typeof output);
+      console.log('📦 Output constructor:', output?.constructor?.name);
+      console.log('📦 Is Array:', Array.isArray(output));
+      console.log('📦 Has asyncIterator:', output && typeof output === 'object' && Symbol.asyncIterator in output);
+      console.log('📦 Output keys:', output && typeof output === 'object' ? Object.keys(output) : 'N/A');
+      console.log('📦 Raw output (first 500 chars):', JSON.stringify(output).substring(0, 500));
 
       let imageUrl: string | undefined;
 
