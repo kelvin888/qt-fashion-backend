@@ -32,6 +32,8 @@ class TryOnService {
 
   /**
    * Main try-on function with Replicate (high accuracy)
+   * Note: IDM-VTON works best with single garments (tops/shirts)
+   * For full outfits, consider splitting into separate images or using the full garment image
    */
   async tryOnOutfit(userImagePath: string, garmentImagePath: string): Promise<TryOnResult> {
     const startTime = Date.now();
@@ -48,6 +50,9 @@ class TryOnService {
       // Try Replicate first (best quality)
       if (this.replicate) {
         console.log('🎨 Using Replicate AI (High Accuracy Mode)...');
+        console.log('📸 User image:', userImagePath);
+        console.log('👗 Garment image:', garmentImagePath);
+        
         const result = await this.tryOnWithReplicate(userImagePath, garmentImagePath);
 
         if (result.success) {
@@ -104,30 +109,63 @@ class TryOnService {
       const userImageData = this.imageToDataUri(userImagePath);
       const garmentImageData = this.imageToDataUri(garmentImagePath);
 
-      // Using IDM-VTON (Virtual Try-On) - Stable and reliable model
-      // Model: cuuupid/idm-vton
-      // This is a production-ready virtual try-on model
+      // Using Kolors Virtual Try-On - Full body outfit support
+      // Model: kwai-kolors/kolors-virtual-try-on
+      // This model supports FULL OUTFITS including both tops and bottoms
+      console.log('🚀 Calling Replicate Kolors Virtual Try-On model...');
+      console.log('ℹ️  This model supports full-body outfit try-on');
+      
       const output = await this.replicate.run(
-        'cuuupid/idm-vton:c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4',
+        'kwai-kolors/kolors-virtual-try-on:e20c1e369742d00c01bec9c9e0c1127e9612a4031954534bfeb3f0bf13ad73f4',
         {
           input: {
-            human_img: userImageData,
-            garm_img: garmentImageData,
-            garment_des: 'clothing item', // Description of the garment
-            is_checked: true,
-            is_checked_crop: false,
-            denoise_steps: 30,
+            human_image: userImageData,
+            cloth_image: garmentImageData,
+            num_inference_steps: 25, // Good balance between speed and quality
+            guidance_scale: 2.5,
             seed: 42,
           },
         }
       );
 
-      // Replicate returns array of URLs
-      const imageUrl = Array.isArray(output) ? output[0] : output;
+      console.log('✅ Replicate API call completed');
+
+      // Replicate output format (based on actual API response):
+      // The model returns a direct string URL in most cases
+      console.log('📦 Replicate raw output type:', typeof output);
+      console.log('📦 Replicate raw output:', typeof output === 'string' ? output : JSON.stringify(output, null, 2));
+
+      let imageUrl: string | undefined;
+
+      // Handle direct string URL (most common)
+      if (typeof output === 'string') {
+        console.log('✓ Output is direct URL string');
+        imageUrl = output;
+      } 
+      // Handle array of URLs
+      else if (Array.isArray(output)) {
+        console.log('✓ Output is array, length:', output.length);
+        imageUrl = output[0];
+      } 
+      // Handle object response
+      else if (output && typeof output === 'object') {
+        console.log('✓ Output is object with keys:', Object.keys(output));
+        // Try multiple possible property names
+        imageUrl = (output as any).image || 
+                   (output as any).output || 
+                   (output as any).url ||
+                   (output as any).result ||
+                   (output as any).data;
+      }
 
       if (!imageUrl || typeof imageUrl !== 'string') {
-        throw new Error('Invalid output from Replicate');
+        console.error('❌ Could not extract image URL from Replicate output');
+        console.error('❌ Output type:', typeof output);
+        console.error('❌ Output value:', output);
+        throw new Error(`Invalid output from Replicate API`);
       }
+
+      console.log('✅ Generated try-on image URL:', imageUrl);
 
       return {
         success: true,
