@@ -133,59 +133,52 @@ class TryOnService {
       );
 
       console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v6 (COMPREHENSIVE DEBUG)');
-      console.log('📦 Output type:', typeof output);
-      console.log('📦 Output constructor:', output?.constructor?.name);
-      console.log('📦 Is Array:', Array.isArray(output));
-      console.log('📦 Has asyncIterator:', output && typeof output === 'object' && Symbol.asyncIterator in output);
-      console.log('📦 Output keys:', output && typeof output === 'object' ? Object.keys(output) : 'N/A');
-      console.log('📦 Raw output (first 500 chars):', JSON.stringify(output).substring(0, 500));
+      console.log('🔍 CODE VERSION: 2025-12-02-v7 (AWAIT ARRAY ELEMENTS)');
 
       let imageUrl: string | undefined;
 
-      // Check if output is an iterable/stream (most common with replicate.run)
-      if (output && typeof output === 'object' && Symbol.asyncIterator in output) {
-        console.log('📦 Output is async iterable (stream)');
-        const results: any[] = [];
+      // The output is typically an array where elements might be streams/promises
+      if (Array.isArray(output) && output.length > 0) {
+        console.log('📦 Array with', output.length, 'elements');
+        console.log('📦 Element[0] type:', typeof output[0]);
+        console.log('📦 Element[0] constructor:', output[0]?.constructor?.name);
         
-        // Collect all chunks from the stream
-        for await (const chunk of output as any) {
-          console.log('📦 Chunk received:', typeof chunk);
-          results.push(chunk);
-        }
+        const firstElement = output[0];
         
-        console.log('📦 Total chunks collected:', results.length);
-        
-        // The result should be in the last chunk or as an array
-        if (results.length > 0) {
-          const lastResult = results[results.length - 1];
-          if (typeof lastResult === 'string' && lastResult.startsWith('http')) {
-            imageUrl = lastResult;
-          } else if (Array.isArray(lastResult) && lastResult.length > 0) {
-            imageUrl = lastResult[0];
-          } else {
-            // Sometimes each chunk is a URL
-            imageUrl = results.find(r => typeof r === 'string' && r.startsWith('http'));
+        // Check if it's a ReadableStream
+        if (firstElement && typeof firstElement === 'object' && 'getReader' in firstElement) {
+          console.log('📦 Element is ReadableStream, reading...');
+          const reader = (firstElement as any).getReader();
+          const chunks: Uint8Array[] = [];
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) chunks.push(value);
           }
+          
+          // Convert chunks to string
+          const decoder = new TextDecoder();
+          const text = chunks.map(chunk => decoder.decode(chunk)).join('');
+          console.log('📦 Stream content:', text.substring(0, 200));
+          imageUrl = text.trim();
+        }
+        // Direct string
+        else if (typeof firstElement === 'string') {
+          console.log('📦 Element is string');
+          imageUrl = firstElement;
         }
       }
       // Direct string
       else if (typeof output === 'string') {
-        console.log('📦 Output is direct string');
+        console.log('📦 Direct string output');
         imageUrl = output;
       }
-      // Array of strings
-      else if (Array.isArray(output) && output.length > 0 && typeof output[0] === 'string') {
-        console.log('📦 Output is array of strings');
-        imageUrl = output[0];
-      }
 
-      console.log('📦 Extracted URL:', imageUrl);
+      console.log('📦 Final URL:', imageUrl);
 
       if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-        console.error('❌ Invalid URL extracted');
-        console.error('❌ Output type:', typeof output);
-        console.error('❌ Has asyncIterator:', output && typeof output === 'object' && Symbol.asyncIterator in output);
+        console.error('❌ Invalid URL');
         throw new Error('Invalid output from Replicate API');
       }
 
