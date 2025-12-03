@@ -173,7 +173,7 @@ class TryOnService {
 
           if (isJPEG || isPNG) {
             console.log('📦 Binary image detected, saving to file...');
-            
+
             // Save to temp file
             const tempFileName = `tryon-result-${Date.now()}.${isJPEG ? 'jpg' : 'png'}`;
             const tempFilePath = path.join('/tmp', tempFileName);
