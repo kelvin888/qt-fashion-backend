@@ -7,6 +7,8 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
 import designRoutes from './routes/design.routes';
 import offerRoutes from './routes/offer.routes';
+import tryOnRoutes from './routes/tryOn.routes';
+import orderRoutes from './routes/order.routes';
 
 // Load environment variables
 dotenv.config();
@@ -25,10 +27,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Swagger API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: 'QT Fashion API Documentation',
-  customCss: '.swagger-ui .topbar { display: none }',
-}));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'QT Fashion API Documentation',
+    customCss: '.swagger-ui .topbar { display: none }',
+  })
+);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -39,6 +45,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/try-on', tryOnRoutes);
+app.use('/api/orders', orderRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -29,9 +29,62 @@ async function downloadImageFromUrl(imageUrl: string): Promise<string> {
 }
 
 /**
- * Virtual Try-On Endpoint (with URL support)
- * POST /api/try-on
- * Body: JSON with { userImageUrl, garmentImageUrl } OR multipart/form-data with 'userImage' and 'garmentImage'
+ * @swagger
+ * /api/try-on:
+ *   post:
+ *     tags:
+ *       - Virtual Try-On
+ *     summary: Do virtual try-on with AI
+ *     description: Upload or provide URLs for user photo and garment design to see how it looks
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userImageUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL of user's photo
+ *               garmentImageUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL of garment/design image
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userImage:
+ *                 type: string
+ *                 format: binary
+ *               garmentImage:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Virtual try-on successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     imageUrl:
+ *                       type: string
+ *                     provider:
+ *                       type: string
+ *                     processingTime:
+ *                       type: number
+ *       400:
+ *         description: Missing images
+ *       500:
+ *         description: Try-on processing failed
  */
 router.post(
   '/',
@@ -137,8 +190,17 @@ router.post(
 );
 
 /**
- * Get usage stats
- * GET /api/try-on/stats
+ * @swagger
+ * /api/try-on/stats:
+ *   get:
+ *     tags:
+ *       - Virtual Try-On
+ *     summary: Get try-on usage statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Usage stats
  */
 router.get('/stats', authenticate, (req: Request, res: Response) => {
   const stats = tryOnService.getUsageStats();
