@@ -29,7 +29,6 @@ router.delete('/clear-old-designs', async (req: Request, res: Response) => {
       select: {
         id: true,
         title: true,
-        thumbnailUrl: true,
         images: true,
       },
     });
@@ -38,14 +37,12 @@ router.delete('/clear-old-designs', async (req: Request, res: Response) => {
 
     // Filter designs with old local file paths
     const oldDesigns = allDesigns.filter((design) => {
-      const thumbnail = design.thumbnailUrl || '';
-      const images = design.images || '[]';
+      const images = JSON.stringify(design.images || []);
 
-      // Check if thumbnailUrl or images contain local paths (not Cloudinary)
-      const hasLocalThumbnail = thumbnail && !thumbnail.startsWith('https://res.cloudinary.com');
+      // Check if images contain local paths (not Cloudinary)
       const hasLocalImages = images.includes('/uploads/') || images.includes('images-');
 
-      return hasLocalThumbnail || hasLocalImages;
+      return hasLocalImages;
     });
 
     console.log(`🔍 Found ${oldDesigns.length} designs with old local file paths`);
@@ -62,7 +59,6 @@ router.delete('/clear-old-designs', async (req: Request, res: Response) => {
     const designsList = oldDesigns.map((d) => ({
       id: d.id,
       title: d.title,
-      thumbnailUrl: d.thumbnailUrl,
     }));
 
     // Delete old designs
@@ -102,24 +98,21 @@ router.get('/status', async (req: Request, res: Response) => {
       select: {
         id: true,
         title: true,
-        thumbnailUrl: true,
         images: true,
       },
     });
 
     const oldDesigns = allDesigns.filter((design) => {
-      const thumbnail = design.thumbnailUrl || '';
-      const images = design.images || '[]';
+      const images = JSON.stringify(design.images || []);
 
-      const hasLocalThumbnail = thumbnail && !thumbnail.startsWith('https://res.cloudinary.com');
       const hasLocalImages = images.includes('/uploads/') || images.includes('images-');
 
-      return hasLocalThumbnail || hasLocalImages;
+      return hasLocalImages;
     });
 
     const cloudinaryDesigns = allDesigns.filter((design) => {
-      const thumbnail = design.thumbnailUrl || '';
-      return thumbnail.startsWith('https://res.cloudinary.com');
+      const images = JSON.stringify(design.images || []);
+      return images.includes('https://res.cloudinary.com');
     });
 
     res.json({

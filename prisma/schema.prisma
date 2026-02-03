@@ -55,6 +55,7 @@ model User {
   designs       Design[]
   offersAsCustomer  Offer[]  @relation("CustomerOffers")
   offersAsDesigner  Offer[]  @relation("DesignerOffers")
+  measurements  BodyMeasurement[]  @relation("UserMeasurements")
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -133,4 +134,38 @@ model Offer {
   @@index([designerId])
   @@index([designId])
   @@index([status])
+}
+
+// Body measurements for virtual try-on
+model BodyMeasurement {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation("UserMeasurements", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Measurements in cm
+  chest               Float
+  waist               Float
+  hips                Float
+  height              Float
+  shoulder            Float
+  armLength           Float
+  inseam              Float
+  neck                Float
+  
+  // Photos
+  frontPhoto          String
+  sidePhoto           String?
+  
+  // AI metadata
+  aiConfidenceScore   Float?
+  aiMetadata          Json?
+  
+  isActive            Boolean   @default(false)
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("body_measurements")
+  @@index([userId])
+  @@index([isActive])
 }

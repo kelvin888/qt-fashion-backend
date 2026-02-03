@@ -68,7 +68,7 @@ export const getDesigns = async (req: Request, res: Response, next: NextFunction
     const filters: any = {};
 
     if (category) {
-      filters.category = (category as string).toUpperCase() as DesignCategory;
+      filters.category = (category as string).toUpperCase();
     }
 
     if (minPrice) {
