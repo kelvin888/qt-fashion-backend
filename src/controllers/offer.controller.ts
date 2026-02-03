@@ -1,0 +1,111 @@
+import { Request, Response, NextFunction } from 'express';
+import offerService from '../services/offer.service';
+
+export const createOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { designId, customerPrice, measurements, notes, expiresAt } = req.body;
+
+    // Validation
+    if (!designId || !customerPrice) {
+      return res.status(400).json({
+        message: 'Missing required fields: designId, customerPrice',
+      });
+    }
+
+    // Get design to find designerId
+    const offer = await offerService.createOffer({
+      customerId: req.user!.id,
+      designerId: '', // Will be set by service from design
+      designId,
+      customerPrice: parseFloat(customerPrice),
+      measurements,
+      notes,
+      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+    });
+
+    res.status(201).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const getOffers = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const offers = await offerService.getOffers(req.user!.id, req.user!.role);
+
+    res.status(200).json(offers);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const getOfferById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const offer = await offerService.getOfferById(id, req.user!.id);
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const acceptOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const offer = await offerService.acceptOffer(id, req.user!.id);
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const counterOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { designerPrice, designerNotes } = req.body;
+
+    if (!designerPrice) {
+      return res.status(400).json({
+        message: 'Missing required field: designerPrice',
+      });
+    }
+
+    const offer = await offerService.counterOffer(id, req.user!.id, {
+      designerPrice: parseFloat(designerPrice),
+      designerNotes,
+    });
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const rejectOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { designerNotes } = req.body;
+
+    const offer = await offerService.rejectOffer(id, req.user!.id, designerNotes);
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const withdrawOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const offer = await offerService.withdrawOffer(id, req.user!.id);
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};

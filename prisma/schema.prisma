@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// QT Fashion - Prisma Schema
+// Phase 2: Authentication + Designs Catalog
 
 generator client {
   provider = "prisma-client-js"
@@ -10,218 +10,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User types: customer or designer
+// ========================================
+// ENUMS
+// ========================================
+
 enum UserRole {
   CUSTOMER
   DESIGNER
   ADMIN
 }
 
-enum OrderStatus {
-  PENDING
-  PAYMENT_HELD
-  IN_PRODUCTION
-  SHIPPED
-  DELIVERED
-  COMPLETED
-  CANCELLED
+enum OfferStatus {
+  PENDING       // Initial offer from customer
+  ACCEPTED      // Designer accepted the offer
+  REJECTED      // Designer rejected the offer
+  COUNTERED     // Designer made a counter offer
+  WITHDRAWN     // Customer withdrew the offer
+  EXPIRED       // Offer expired
 }
 
-enum PaymentStatus {
-  PENDING
-  HELD_IN_ESCROW
-  RELEASED
-  REFUNDED
-}
+// Note: Category is now a String field (not enum) to allow dynamic categories
+// without requiring database migrations. Frontend can add new categories anytime.
+
+// ========================================
+// MODELS
+// ========================================
 
 model User {
-  id                String              @id @default(cuid())
-  email             String              @unique
-  password          String
-  name              String
-  role              UserRole            @default(CUSTOMER)
-  phone             String?
-  avatar            String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  fullName      String
+  phoneNumber   String?
+  role          UserRole @default(CUSTOMER)
+  
+  // Optional designer fields
+  profileImage  String?
+  brandName     String?
+  brandLogo     String?
+  brandBanner   String?
+  bio           String?
+  
   // Relations
-  bodyMeasurements  BodyMeasurement[]
-  designs           Design[]            // For designers
-  orders            Order[]             @relation("CustomerOrders")
-  designerOrders    Order[]             @relation("DesignerOrders")
-  tryOns            VirtualTryOn[]
+  designs       Design[]
+  offersAsCustomer  Offer[]  @relation("CustomerOffers")
+  offersAsDesigner  Offer[]  @relation("DesignerOffers")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("users")
 }
 
-model BodyMeasurement {
-  id                String    @id @default(cuid())
-  userId            String
-  
-  // Measurements in cm
-  chest             Float
-  waist             Float
-  hips              Float
-  height            Float
-  shoulder          Float?
-  armLength         Float?
-  inseam            Float?
-  neck              Float?
-  
-  // Photo URLs
-  frontPhoto        String
-  sidePhoto         String?
-  
-  // AI Analysis data
-  aiConfidenceScore Float?
-  aiMetadata        Json?
-  
-  isActive          Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  // Relations
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tryOns            VirtualTryOn[]
-
-  @@map("body_measurements")
-}
-
 model Design {
-  id                String    @id @default(cuid())
-  designerId        String
+  id              String          @id @default(cuid())
+  designerId      String
+  designer        User            @relation(fields: [designerId], references: [id], onDelete: Cascade)
   
-  title             String
-  description       String
-  category          String    // e.g., "dress", "shirt", "pants"
-  price             Float
+  // Design details
+  title           String
+  description     String
+  price           Float
+  images          String[]        // Array of image URLs
+  category        String          // Dynamic category (e.g., "MODERN", "TRADITIONAL", etc.)
+  fabricType      String?
+  colors          String[]        // Available colors
+  sizes           String[]        // Available sizes
   
-  // Design images
-  images            String    // JSON array of image URLs
-  thumbnailUrl      String
+  // Customization
+  customizable    Boolean         @default(false)
+  customizations  Json?           // JSON for custom options
   
-  // Design specifications
-  fabricType        String?
-  colors            String    // JSON array of available colors
-  sizes             String    // JSON array of available sizes or "custom"
+  // Metadata
+  views           Int             @default(0)
+  featured        Boolean         @default(false)
   
-  // Production details
-  productionTime    Int       // Days
-  
-  isActive          Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
   // Relations
-  designer          User      @relation(fields: [designerId], references: [id], onDelete: Cascade)
-  orders            Order[]
-  tryOns            VirtualTryOn[]
+  offers          Offer[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@map("designs")
+  @@index([designerId])
+  @@index([category])
 }
 
-model VirtualTryOn {
-  id                String    @id @default(cuid())
-  userId            String
-  designId          String
-  measurementId     String
+model Offer {
+  id              String        @id @default(cuid())
   
-  // Try-on result
-  resultImageUrl    String?
-  resultVideoUrl    String?
+  // Relationships
+  customerId      String
+  customer        User          @relation("CustomerOffers", fields: [customerId], references: [id], onDelete: Cascade)
   
-  // AI processing
-  status            String    @default("processing") // processing, completed, failed
-  aiMetadata        Json?
+  designerId      String
+  designer        User          @relation("DesignerOffers", fields: [designerId], references: [id], onDelete: Cascade)
   
-  createdAt         DateTime  @default(now())
+  designId        String
+  design          Design        @relation(fields: [designId], references: [id], onDelete: Cascade)
+  
+  // Offer details
+  status          OfferStatus   @default(PENDING)
+  customerPrice   Float         // Customer's offered price
+  designerPrice   Float?        // Designer's counter price (if countered)
+  finalPrice      Float?        // Agreed price (when accepted)
+  
+  // Customer measurements (optional - for custom orders)
+  measurements    Json?
+  
+  // Additional details
+  notes           String?       // Customer's notes/requirements
+  designerNotes   String?       // Designer's response notes
+  
+  // Timestamps
+  expiresAt       DateTime?     // Offer expiration
+  acceptedAt      DateTime?     // When designer accepted
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  // Relations
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  design            Design            @relation(fields: [designId], references: [id], onDelete: Cascade)
-  measurement       BodyMeasurement   @relation(fields: [measurementId], references: [id], onDelete: Cascade)
-
-  @@map("virtual_try_ons")
-}
-
-model Order {
-  id                String        @id @default(cuid())
-  customerId        String
-  designerId        String
-  designId          String
-  
-  // Order details
-  status            OrderStatus   @default(PENDING)
-  totalAmount       Float
-  
-  // Custom measurements if provided
-  customMeasurements Json?
-  
-  // Customization options
-  selectedColor     String?
-  selectedSize      String?
-  specialInstructions String?
-  
-  // Production tracking
-  productionStage   String?       // e.g., "cutting", "stitching", "finishing"
-  estimatedDelivery DateTime?
-  actualDelivery    DateTime?
-  
-  // Shipping
-  shippingAddress   Json
-  trackingNumber    String?
-  
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  // Relations
-  customer          User          @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
-  designer          User          @relation("DesignerOrders", fields: [designerId], references: [id], onDelete: Cascade)
-  design            Design        @relation(fields: [designId], references: [id], onDelete: Cascade)
-  payment           Payment?
-  progressUpdates   ProductionProgress[]
-
-  @@map("orders")
-}
-
-model ProductionProgress {
-  id                String    @id @default(cuid())
-  orderId           String
-  
-  stage             String    // e.g., "order_received", "cutting", "stitching", "quality_check", "shipped"
-  description       String
-  imageUrl          String?   // Optional progress photo
-  
-  createdAt         DateTime  @default(now())
-
-  // Relations
-  order             Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@map("production_progress")
-}
-
-model Payment {
-  id                String        @id @default(cuid())
-  orderId           String        @unique
-  
-  amount            Float
-  currency          String        @default("USD")
-  status            PaymentStatus @default(PENDING)
-  
-  // Payment gateway details
-  paymentIntentId   String?       // Stripe/Paystack payment ID
-  paymentMethod     String?
-  
-  // Escrow
-  heldAt            DateTime?
-  releasedAt        DateTime?
-  
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  // Relations
-  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@map("payments")
+  @@map("offers")
+  @@index([customerId])
+  @@index([designerId])
+  @@index([designId])
+  @@index([status])
 }
