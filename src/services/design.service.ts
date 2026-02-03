@@ -221,11 +221,32 @@ class DesignService {
     return { message: 'Design deleted successfully' };
   }
 
-  async getDesigners() {
+  async getDesigners(
+    filters: { search?: string; sortBy?: 'most-designs' | 'newest' | 'a-z' } = {}
+  ) {
+    const where: any = {
+      role: 'DESIGNER',
+    };
+
+    // Add search filter
+    if (filters.search) {
+      where.OR = [
+        { fullName: { contains: filters.search, mode: 'insensitive' } },
+        { brandName: { contains: filters.search, mode: 'insensitive' } },
+        { bio: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Determine sort order
+    let orderBy: any = { designs: { _count: 'desc' } }; // default: most designs
+    if (filters.sortBy === 'newest') {
+      orderBy = { createdAt: 'desc' };
+    } else if (filters.sortBy === 'a-z') {
+      orderBy = { brandName: 'asc' };
+    }
+
     const designers = await prisma.user.findMany({
-      where: {
-        role: 'DESIGNER',
-      },
+      where,
       select: {
         id: true,
         fullName: true,
@@ -239,12 +260,7 @@ class DesignService {
           },
         },
       },
-      orderBy: {
-        designs: {
-          _count: 'desc',
-        },
-      },
-      take: 10, // Top 10 designers by design count
+      orderBy,
     });
 
     return designers.map((designer) => ({

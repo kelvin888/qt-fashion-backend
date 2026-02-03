@@ -153,7 +153,17 @@ export const deleteDesign = async (req: Request, res: Response, next: NextFuncti
 
 export const getDesigners = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const designers = await designService.getDesigners();
+    const { search, sortBy } = req.query;
+
+    const filters: any = {};
+    if (search) {
+      filters.search = search as string;
+    }
+    if (sortBy) {
+      filters.sortBy = sortBy as 'most-designs' | 'newest' | 'a-z';
+    }
+
+    const designers = await designService.getDesigners(filters);
 
     res.status(200).json(designers);
   } catch (error: any) {
