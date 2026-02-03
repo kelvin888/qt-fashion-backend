@@ -145,3 +145,13 @@ export const deleteDesign = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
+export const getDesigners = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const designers = await designService.getDesigners();
+
+    res.status(200).json(designers);
+  } catch (error: any) {
+    next(error);
+  }
+};

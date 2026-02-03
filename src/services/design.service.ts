@@ -213,6 +213,43 @@ class DesignService {
 
     return { message: 'Design deleted successfully' };
   }
+
+  async getDesigners() {
+    const designers = await prisma.user.findMany({
+      where: {
+        role: 'DESIGNER',
+      },
+      select: {
+        id: true,
+        fullName: true,
+        brandName: true,
+        brandLogo: true,
+        profileImage: true,
+        bio: true,
+        _count: {
+          select: {
+            designs: true,
+          },
+        },
+      },
+      orderBy: {
+        designs: {
+          _count: 'desc',
+        },
+      },
+      take: 10, // Top 10 designers by design count
+    });
+
+    return designers.map((designer) => ({
+      id: designer.id,
+      fullName: designer.fullName,
+      brandName: designer.brandName,
+      brandLogo: designer.brandLogo,
+      profileImage: designer.profileImage,
+      bio: designer.bio,
+      designCount: designer._count.designs,
+    }));
+  }
 }
 
 export default new DesignService();

@@ -204,4 +204,17 @@ router.put('/:id', authenticate, requireRole('DESIGNER'), designController.updat
  */
 router.delete('/:id', authenticate, requireRole('DESIGNER'), designController.deleteDesign);
 
+/**
+ * @swagger
+ * /api/designs/meta/designers:
+ *   get:
+ *     tags:
+ *       - Designs
+ *     summary: Get all designers (public)
+ *     responses:
+ *       200:
+ *         description: List of designers
+ */
+router.get('/meta/designers', designController.getDesigners);
+
 export default router;

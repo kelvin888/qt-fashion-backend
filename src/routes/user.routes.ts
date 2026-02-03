@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { getUserById, getDesignerProfile } from '../controllers/user.controller';
 
 const router = Router();
 
-// TODO: Implement user routes
-router.get('/', authenticate, (req, res) => {
-  res.json({ message: 'User routes - coming soon' });
-});
+// Public routes - anyone can view user profiles
+router.get('/:id', getUserById);
+router.get('/:id/designer-profile', getDesignerProfile);
 
 export default router;
