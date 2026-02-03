@@ -61,6 +61,7 @@ export const getDesigns = async (req: Request, res: Response, next: NextFunction
       maxPrice,
       designerId,
       search,
+      sortBy,
       page = '1',
       limit = '20',
     } = req.query;
@@ -85,6 +86,10 @@ export const getDesigns = async (req: Request, res: Response, next: NextFunction
 
     if (search) {
       filters.search = search as string;
+    }
+
+    if (sortBy) {
+      filters.sortBy = sortBy as 'price-asc' | 'price-desc' | 'newest';
     }
 
     const result = await designService.getDesigns(

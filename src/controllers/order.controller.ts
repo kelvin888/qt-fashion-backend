@@ -1,6 +1,6 @@
 /**
  * Order Controller
- * 
+ *
  * HTTP request handlers for order endpoints.
  */
 
@@ -91,8 +91,8 @@ export const addShipment = async (req: Request, res: Response, next: NextFunctio
     const { carrier, trackingNumber, estimatedDelivery } = req.body;
 
     if (!carrier || !trackingNumber || !estimatedDelivery) {
-      return res.status(400).json({ 
-        error: 'Carrier, tracking number, and estimated delivery are required' 
+      return res.status(400).json({
+        error: 'Carrier, tracking number, and estimated delivery are required',
       });
     }
 

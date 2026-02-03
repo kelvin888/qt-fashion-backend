@@ -35,6 +35,7 @@ export interface DesignFilters {
   maxPrice?: number;
   designerId?: string;
   search?: string;
+  sortBy?: 'price-asc' | 'price-desc' | 'newest';
 }
 
 class DesignService {
@@ -98,14 +99,20 @@ class DesignService {
       ];
     }
 
+    // Determine sort order
+    let orderBy: any = { createdAt: 'desc' }; // default: newest first
+    if (filters.sortBy === 'price-asc') {
+      orderBy = { price: 'asc' };
+    } else if (filters.sortBy === 'price-desc') {
+      orderBy = { price: 'desc' };
+    }
+
     const [designs, total] = await Promise.all([
       prisma.design.findMany({
         where,
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy,
         include: {
           designer: {
             select: {

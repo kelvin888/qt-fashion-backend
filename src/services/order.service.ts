@@ -1,6 +1,6 @@
 /**
  * Order Service
- * 
+ *
  * Business logic for order management, production tracking, and shipment.
  */
 
@@ -47,11 +47,11 @@ class OrderService {
     const count = await prisma.order.count({
       where: {
         orderNumber: {
-          startsWith: `QT-${year}-`
-        }
-      }
+          startsWith: `QT-${year}-`,
+        },
+      },
     });
-    
+
     const nextNumber = (count + 1).toString().padStart(5, '0');
     return `QT-${year}-${nextNumber}`;
   }
@@ -121,9 +121,7 @@ class OrderService {
    * Get all orders (filtered by user role)
    */
   async getOrders(userId: string, userRole: string): Promise<Order[]> {
-    const where = userRole === 'DESIGNER'
-      ? { designerId: userId }
-      : { customerId: userId };
+    const where = userRole === 'DESIGNER' ? { designerId: userId } : { customerId: userId };
 
     const orders = await prisma.order.findMany({
       where,
@@ -169,10 +167,7 @@ class OrderService {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
-        OR: [
-          { customerId: userId },
-          { designerId: userId },
-        ],
+        OR: [{ customerId: userId }, { designerId: userId }],
       },
       include: {
         customer: {
@@ -219,7 +214,11 @@ class OrderService {
   /**
    * Update order status
    */
-  async updateOrderStatus(orderId: string, userId: string, data: UpdateOrderStatusData): Promise<Order> {
+  async updateOrderStatus(
+    orderId: string,
+    userId: string,
+    data: UpdateOrderStatusData
+  ): Promise<Order> {
     // Verify designer owns this order
     const existing = await prisma.order.findFirst({
       where: {
@@ -282,7 +281,11 @@ class OrderService {
   /**
    * Update production progress
    */
-  async updateProduction(orderId: string, userId: string, data: UpdateProductionData): Promise<Order> {
+  async updateProduction(
+    orderId: string,
+    userId: string,
+    data: UpdateProductionData
+  ): Promise<Order> {
     // Verify designer owns this order
     const existing = await prisma.order.findFirst({
       where: {
