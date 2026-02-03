@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
 import designRoutes from './routes/design.routes';
 import offerRoutes from './routes/offer.routes';
+import orderRoutes from './routes/order.routes';
 import userRoutes from './routes/user.routes';
 
 // Load environment variables
@@ -44,6 +45,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 
 // 404 handler

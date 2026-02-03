@@ -29,6 +29,16 @@ enum OfferStatus {
   EXPIRED       // Offer expired
 }
 
+enum OrderStatus {
+  CONFIRMED     // Order created from accepted offer
+  SOURCING      // Fabric sourcing in progress
+  CONSTRUCTION  // Garment construction in progress
+  QUALITY_CHECK // Quality inspection
+  SHIPPING      // Out for delivery
+  DELIVERED     // Delivered to customer
+  CANCELLED     // Order cancelled
+}
+
 // Note: Category is now a String field (not enum) to allow dynamic categories
 // without requiring database migrations. Frontend can add new categories anytime.
 
@@ -55,6 +65,8 @@ model User {
   designs       Design[]
   offersAsCustomer  Offer[]  @relation("CustomerOffers")
   offersAsDesigner  Offer[]  @relation("DesignerOffers")
+  ordersAsCustomer  Order[]  @relation("CustomerOrders")
+  ordersAsDesigner  Order[]  @relation("DesignerOrders")
   measurements  BodyMeasurement[]  @relation("UserMeasurements")
   
   createdAt     DateTime @default(now())
@@ -88,6 +100,7 @@ model Design {
   
   // Relations
   offers          Offer[]
+  orders          Order[]
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -128,12 +141,62 @@ model Offer {
   acceptedAt      DateTime?     // When designer accepted
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  order           Order?        @relation("OfferOrder")
 
   @@map("offers")
   @@index([customerId])
   @@index([designerId])
   @@index([designId])
   @@index([status])
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique // Human-readable order number (e.g., QT-2024-001)
+  
+  // Original offer reference
+  offerId         String        @unique
+  offer           Offer         @relation("OfferOrder", fields: [offerId], references: [id], onDelete: Restrict)
+  
+  // Relationships
+  customerId      String
+  customer        User          @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
+  
+  designerId      String
+  designer        User          @relation("DesignerOrders", fields: [designerId], references: [id], onDelete: Cascade)
+  
+  designId        String
+  design          Design        @relation(fields: [designId], references: [id], onDelete: Restrict)
+  
+  // Order details
+  status          OrderStatus   @default(CONFIRMED)
+  finalPrice      Float         // Agreed price from offer
+  
+  // Customer measurements (from offer)
+  measurements    Json?
+  
+  // Production tracking
+  productionSteps Json?         // Array of {step: string, status: 'pending'|'in_progress'|'completed', completedAt?: date}
+  progressNotes   String?       // Designer's progress updates
+  
+  // Shipment tracking
+  carrier         String?
+  trackingNumber  String?
+  estimatedDelivery DateTime?
+  deliveredAt     DateTime?
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("orders")
+  @@index([customerId])
+  @@index([designerId])
+  @@index([designId])
+  @@index([status])
+  @@index([orderNumber])
 }
 
 // Body measurements for virtual try-on

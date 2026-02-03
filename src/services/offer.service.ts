@@ -1,4 +1,5 @@
 import { PrismaClient, OfferStatus } from '@prisma/client';
+import orderService from './order.service';
 
 const prisma = new PrismaClient();
 
@@ -221,6 +222,16 @@ class OfferService {
         },
         design: true,
       },
+    });
+
+    // ✅ Create order from accepted offer
+    await orderService.createOrder({
+      offerId: updatedOffer.id,
+      customerId: updatedOffer.customerId,
+      designerId: updatedOffer.designerId,
+      designId: updatedOffer.designId,
+      finalPrice: updatedOffer.finalPrice!,
+      measurements: updatedOffer.measurements,
     });
 
     return updatedOffer;
