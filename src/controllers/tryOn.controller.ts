@@ -3,8 +3,8 @@ import FormData from 'form-data';
 import axios from 'axios';
 import { Readable } from 'stream';
 
-const EXTERNAL_TRY_ON_API =
-  process.env.EXTERNAL_TRY_ON_API_URL || 'https://fashion-api.ddns.net/try-on/api/v1/try-on';
+// Hardcoded for now - external try-on API endpoint
+const EXTERNAL_TRY_ON_API = 'https://fashion-api.ddns.net/try-on/api/v1/try-on';
 
 /**
  * Proxy endpoint for virtual try-on
