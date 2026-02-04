@@ -9,6 +9,7 @@ import designRoutes from './routes/design.routes';
 import offerRoutes from './routes/offer.routes';
 import orderRoutes from './routes/order.routes';
 import userRoutes from './routes/user.routes';
+import tryOnRoutes from './routes/tryOn.routes';
 
 // Load environment variables
 dotenv.config();
@@ -47,6 +48,7 @@ app.use('/api/designs', designRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/try-on', tryOnRoutes);
 
 // 404 handler
 app.use((req, res) => {
