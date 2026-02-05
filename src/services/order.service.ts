@@ -71,7 +71,17 @@ class OrderService {
     // Fetch the design to get custom production steps
     const design = await prisma.design.findUnique({
       where: { id: data.designId },
-      select: { productionSteps: true },
+      select: { productionSteps: true, id: true, title: true },
+    });
+
+    console.log('📦 Creating order for design:', {
+      designId: data.designId,
+      designTitle: design?.title,
+      hasDesign: !!design,
+      productionSteps: design?.productionSteps,
+      productionStepsType: typeof design?.productionSteps,
+      isArray: Array.isArray(design?.productionSteps),
+      length: Array.isArray(design?.productionSteps) ? design.productionSteps.length : 'N/A',
     });
 
     // Production steps are required - designer must define them
@@ -80,6 +90,7 @@ class OrderService {
       !Array.isArray(design.productionSteps) ||
       design.productionSteps.length === 0
     ) {
+      console.error('❌ No production steps found for design:', data.designId);
       throw new Error(
         'This design has no production steps defined. Please contact the designer to add production workflow before placing an order.'
       );
