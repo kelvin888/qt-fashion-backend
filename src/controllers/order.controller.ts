@@ -117,10 +117,18 @@ export const addShipment = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
+    // Parse and validate the date
+    const deliveryDate = new Date(estimatedDelivery);
+    if (isNaN(deliveryDate.getTime())) {
+      return res.status(400).json({
+        error: 'Invalid date format. Please provide a valid date (e.g., 2026-02-15 or Feb 15, 2026)',
+      });
+    }
+
     const order = await orderService.addShipment(orderId, userId, {
       carrier,
       trackingNumber,
-      estimatedDelivery: new Date(estimatedDelivery),
+      estimatedDelivery: deliveryDate,
     });
 
     res.status(200).json(order);
