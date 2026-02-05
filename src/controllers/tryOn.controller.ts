@@ -85,18 +85,14 @@ export const proxyTryOn = async (req: Request, res: Response, next: NextFunction
     const processingTime = Date.now() - startTime;
     console.log(`✅ Try-on completed in ${processingTime}ms`);
 
-    // Extract result URL from various possible field names
+    // External API returns { status: "success", result_url: "https://...", message: "...", tip: "..." }
     const data = apiResponse.data;
-    const resultUrl =
-      data.result_url ||
-      data.output_image_url ||
-      data.imageUrl ||
-      data.image_url ||
-      data.url ||
-      data.output_url;
+    console.log('🔍 Raw external API response:', JSON.stringify(data, null, 2));
+    
+    const resultUrl = data.result_url;
 
     if (!resultUrl) {
-      console.error('❌ No result URL in response:', data);
+      console.error('❌ No result_url in response:', data);
       return res.status(500).json({
         success: false,
         message: 'Try-on completed but no result image URL found',
