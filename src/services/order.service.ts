@@ -6,6 +6,7 @@
 
 import prisma from '../config/database';
 import { Order, OrderStatus } from '@prisma/client';
+import walletService from './wallet.service';
 
 interface ProductionStep {
   step: string;
@@ -574,9 +575,15 @@ class OrderService {
       },
     });
 
-    // TODO: Trigger payment release from escrow to designer
-    // This would integrate with your payment service (Stripe, Paystack, etc.)
-    // Example: await paymentService.releaseEscrow(order.id, order.finalPrice, order.designerId);
+    // Release payment to designer's wallet
+    await walletService.creditWallet({
+      userId: order.designerId,
+      amount: order.finalPrice,
+      description: `Payment for order ${order.orderNumber} - ${order.design.title}`,
+      orderId: order.id,
+    });
+
+    console.log(`💸 Payment of ₦${order.finalPrice.toLocaleString()} released to designer ${order.designer.fullName || order.designer.brandName}`);
 
     return order;
   }
@@ -585,7 +592,7 @@ class OrderService {
    * Get order statistics for designer
    */
   async getDesignerStats(userId: string) {
-    const [total, confirmed, inProgress, completed, revenue] = await Promise.all([
+    const [total, confirmed, inProgress, completed, revenue, user, pendingRevenue] = await Promise.all([
       prisma.order.count({
         where: { designerId: userId },
       }),
@@ -615,6 +622,21 @@ class OrderService {
           finalPrice: true,
         },
       }),
+      // Get user wallet balance
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { walletBalance: true },
+      }),
+      // Get pending earnings (orders in SHIPPING status awaiting confirmation)
+      prisma.order.aggregate({
+        where: {
+          designerId: userId,
+          status: 'SHIPPING',
+        },
+        _sum: {
+          finalPrice: true,
+        },
+      }),
     ]);
 
     return {
@@ -623,6 +645,8 @@ class OrderService {
       inProgress,
       completed,
       totalRevenue: revenue._sum.finalPrice || 0,
+      walletBalance: user?.walletBalance || 0,
+      pendingEarnings: pendingRevenue._sum.finalPrice || 0,
     };
   }
 }

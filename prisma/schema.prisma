@@ -61,6 +61,9 @@ model User {
   brandBanner   String?
   bio           String?
   
+  // Wallet for designers
+  walletBalance Float    @default(0)
+  
   // Relations
   designs       Design[]
   offersAsCustomer  Offer[]  @relation("CustomerOffers")
@@ -68,6 +71,7 @@ model User {
   ordersAsCustomer  Order[]  @relation("CustomerOrders")
   ordersAsDesigner  Order[]  @relation("DesignerOrders")
   measurements  BodyMeasurement[]  @relation("UserMeasurements")
+  walletTransactions WalletTransaction[] @relation("UserWalletTransactions")
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -238,4 +242,24 @@ model BodyMeasurement {
   @@map("body_measurements")
   @@index([userId])
   @@index([isActive])
+}
+
+// Wallet transaction tracking
+model WalletTransaction {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation("UserWalletTransactions", fields: [userId], references: [id], onDelete: Cascade)
+  
+  type            String    // 'CREDIT' or 'DEBIT'
+  amount          Float
+  balanceBefore   Float
+  balanceAfter    Float
+  description     String
+  orderId         String?   // Reference to order if applicable
+  
+  createdAt       DateTime  @default(now())
+
+  @@map("wallet_transactions")
+  @@index([userId])
+  @@index([orderId])
 }
