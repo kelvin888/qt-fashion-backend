@@ -119,7 +119,7 @@ class OrderService {
         designId: data.designId,
         finalPrice: data.finalPrice,
         measurements: data.measurements || {},
-        status: 'CONFIRMED',
+        status: 'PENDING',
         productionSteps: productionSteps as any,
       },
       include: {
@@ -594,7 +594,7 @@ class OrderService {
    * Get order statistics for designer
    */
   async getDesignerStats(userId: string) {
-    const [total, confirmed, inProgress, completed, revenue, user, pendingRevenue] =
+    const [total, pending, inProgress, completed, revenue, user, pendingRevenue] =
       await Promise.all([
         prisma.order.count({
           where: { designerId: userId },
@@ -602,7 +602,7 @@ class OrderService {
         prisma.order.count({
           where: {
             designerId: userId,
-            status: 'CONFIRMED',
+            status: 'PENDING',
           },
         }),
         prisma.order.count({
@@ -644,7 +644,7 @@ class OrderService {
 
     return {
       total,
-      confirmed,
+      pending,
       inProgress,
       completed,
       totalRevenue: revenue._sum.finalPrice || 0,

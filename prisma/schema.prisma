@@ -30,7 +30,7 @@ enum OfferStatus {
 }
 
 enum OrderStatus {
-  CONFIRMED     // Order created from accepted offer
+  PENDING       // Order created, awaiting production start
   SOURCING      // Fabric sourcing in progress
   CONSTRUCTION  // Garment construction in progress
   QUALITY_CHECK // Quality inspection
@@ -178,7 +178,7 @@ model Order {
   design          Design        @relation(fields: [designId], references: [id], onDelete: Restrict)
   
   // Order details
-  status          OrderStatus   @default(CONFIRMED)
+  status          OrderStatus   @default(PENDING)
   finalPrice      Float         // Agreed price from offer
   
   // Customer measurements (from offer)

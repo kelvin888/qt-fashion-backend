@@ -43,7 +43,7 @@ router.use(authenticate);
  *                     example: "QT-2024-00001"
  *                   status:
  *                     type: string
- *                     enum: [CONFIRMED, SOURCING, CONSTRUCTION, QUALITY_CHECK, SHIPPING, DELIVERED, CANCELLED]
+ *                     enum: [PENDING, SOURCING, CONSTRUCTION, QUALITY_CHECK, SHIPPING, DELIVERED, CANCELLED]
  *                   finalPrice:
  *                     type: number
  *                   customer:
@@ -159,7 +159,7 @@ router.get('/:orderId', orderController.getOrderById);
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [CONFIRMED, SOURCING, CONSTRUCTION, QUALITY_CHECK, SHIPPING, DELIVERED, CANCELLED]
+ *                 enum: [PENDING, SOURCING, CONSTRUCTION, QUALITY_CHECK, SHIPPING, DELIVERED, CANCELLED]
  *               progressNotes:
  *                 type: string
  *     responses:
