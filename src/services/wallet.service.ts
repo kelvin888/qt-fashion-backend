@@ -54,7 +54,9 @@ class WalletService {
       }),
     ]);
 
-    console.log(`✅ Credited ₦${amount.toLocaleString()} to ${user.brandName || user.fullName}'s wallet`);
+    console.log(
+      `✅ Credited ₦${amount.toLocaleString()} to ${user.brandName || user.fullName}'s wallet`
+    );
     console.log(`   Previous balance: ₦${balanceBefore.toLocaleString()}`);
     console.log(`   New balance: ₦${balanceAfter.toLocaleString()}`);
   }

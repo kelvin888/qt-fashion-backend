@@ -583,7 +583,9 @@ class OrderService {
       orderId: order.id,
     });
 
-    console.log(`💸 Payment of ₦${order.finalPrice.toLocaleString()} released to designer ${order.designer.fullName || order.designer.brandName}`);
+    console.log(
+      `💸 Payment of ₦${order.finalPrice.toLocaleString()} released to designer ${order.designer.fullName || order.designer.brandName}`
+    );
 
     return order;
   }
@@ -592,52 +594,53 @@ class OrderService {
    * Get order statistics for designer
    */
   async getDesignerStats(userId: string) {
-    const [total, confirmed, inProgress, completed, revenue, user, pendingRevenue] = await Promise.all([
-      prisma.order.count({
-        where: { designerId: userId },
-      }),
-      prisma.order.count({
-        where: {
-          designerId: userId,
-          status: 'CONFIRMED',
-        },
-      }),
-      prisma.order.count({
-        where: {
-          designerId: userId,
-          status: {
-            in: ['SOURCING', 'CONSTRUCTION', 'QUALITY_CHECK'],
+    const [total, confirmed, inProgress, completed, revenue, user, pendingRevenue] =
+      await Promise.all([
+        prisma.order.count({
+          where: { designerId: userId },
+        }),
+        prisma.order.count({
+          where: {
+            designerId: userId,
+            status: 'CONFIRMED',
           },
-        },
-      }),
-      prisma.order.count({
-        where: {
-          designerId: userId,
-          status: 'DELIVERED',
-        },
-      }),
-      prisma.order.aggregate({
-        where: { designerId: userId },
-        _sum: {
-          finalPrice: true,
-        },
-      }),
-      // Get user wallet balance
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { walletBalance: true },
-      }),
-      // Get pending earnings (orders in SHIPPING status awaiting confirmation)
-      prisma.order.aggregate({
-        where: {
-          designerId: userId,
-          status: 'SHIPPING',
-        },
-        _sum: {
-          finalPrice: true,
-        },
-      }),
-    ]);
+        }),
+        prisma.order.count({
+          where: {
+            designerId: userId,
+            status: {
+              in: ['SOURCING', 'CONSTRUCTION', 'QUALITY_CHECK'],
+            },
+          },
+        }),
+        prisma.order.count({
+          where: {
+            designerId: userId,
+            status: 'DELIVERED',
+          },
+        }),
+        prisma.order.aggregate({
+          where: { designerId: userId },
+          _sum: {
+            finalPrice: true,
+          },
+        }),
+        // Get user wallet balance
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { walletBalance: true },
+        }),
+        // Get pending earnings (orders in SHIPPING status awaiting confirmation)
+        prisma.order.aggregate({
+          where: {
+            designerId: userId,
+            status: 'SHIPPING',
+          },
+          _sum: {
+            finalPrice: true,
+          },
+        }),
+      ]);
 
     return {
       total,
