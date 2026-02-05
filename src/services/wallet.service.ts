@@ -101,8 +101,6 @@ class WalletService {
         },
       }),
     ]);
-
-    console.log(`✅ Debited ₦${amount.toLocaleString()} from wallet`);
   }
 
   /**

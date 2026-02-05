@@ -50,9 +50,7 @@ class TryOnService {
     try {
       // Try Replicate first (best quality)
       if (this.replicate) {
-        console.log('🎨 Using Replicate AI (High Accuracy Mode)...');
-        console.log('📸 User image:', userImagePath);
-        console.log('👗 Garment image:', garmentImagePath);
+        console.log('🎨 Using Replicate AI for virtual try-on');
 
         const result = await this.tryOnWithReplicate(userImagePath, garmentImagePath);
 
@@ -68,7 +66,7 @@ class TryOnService {
 
       // Fallback to Hugging Face (free tier)
       if (this.huggingfaceApiKey) {
-        console.log('🎨 Falling back to Hugging Face (Free Tier)...');
+        console.log('🎨 Fallback: Using Hugging Face API');
         const result = await this.tryOnWithHuggingFace(userImagePath, garmentImagePath);
         return {
           ...result,
@@ -78,7 +76,7 @@ class TryOnService {
       }
 
       // Final fallback: Simulated mode (for development/testing)
-      console.log('🎨 Using Simulated Try-On (Development Mode)...');
+      console.log('🎨 Development mode: Simulated try-on');
       const result = await this.simulatedTryOn(userImagePath, garmentImagePath);
       return {
         ...result,
@@ -112,9 +110,7 @@ class TryOnService {
 
       // Using Generative AI Virtual Try-On
       // Using a model that takes BOTH user image AND garment image
-      console.log('🚀 Using AI Virtual Try-On...');
-      console.log('👤 User image:', userImagePath);
-      console.log('👗 Garment image:', garmentImagePath);
+      console.log('🚀 AI Virtual Try-On initiated');
 
       // Try using IDM-VTON which is designed for virtual try-on
       // It takes both person image and garment image
@@ -133,16 +129,13 @@ class TryOnService {
         }
       );
 
-      console.log('✅ Replicate API call completed');
-      console.log('🔍 CODE VERSION: 2025-12-02-v13 (SAVE BINARY & UPLOAD)');
-      console.log('📦 Raw output type:', typeof output);
-      console.log('📦 Is array:', Array.isArray(output));
+      console.log('✅ Replicate API completed');
 
       let imageUrl: string | undefined;
 
       // Handle ReadableStream with BINARY data (IDM-VTON returns image bytes)
       if (output && typeof output === 'object' && 'getReader' in output) {
-        console.log('📦 Output is ReadableStream, consuming binary stream...');
+
         const reader = (output as any).getReader();
         const chunks: Uint8Array[] = [];
 
@@ -164,8 +157,7 @@ class TryOnService {
             offset += chunk.length;
           }
 
-          console.log('📦 Stream consumed, total bytes:', imageBuffer.length);
-          console.log('📦 First few bytes:', imageBuffer.slice(0, 20));
+
 
           // Check if it's binary image data (starts with JPEG/PNG magic bytes)
           const isJPEG = imageBuffer[0] === 0xff && imageBuffer[1] === 0xd8;
