@@ -326,6 +326,50 @@ router.post('/:orderId/shipment', orderController.addShipment);
 
 /**
  * @swagger
+ * /api/orders/{orderId}/confirm-delivery:
+ *   post:
+ *     tags:
+ *       - Orders
+ *     summary: Confirm delivery (Customer only)
+ *     description: Customer confirms receipt of order and optionally provides rating/review. Releases payment from escrow.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 example: 5
+ *               review:
+ *                 type: string
+ *                 example: "Beautiful work! Exactly as I envisioned."
+ *     responses:
+ *       200:
+ *         description: Delivery confirmed, payment released
+ *       400:
+ *         description: Invalid rating or already delivered
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Only customer can confirm delivery
+ *       404:
+ *         description: Order not found
+ */
+router.post('/:orderId/confirm-delivery', orderController.confirmDelivery);
+
+/**
+ * @swagger
  * /api/orders/stats/designer:
  *   get:
  *     tags:

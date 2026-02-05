@@ -44,6 +44,11 @@ interface UpdateShipmentData {
   estimatedDelivery: Date;
 }
 
+interface ConfirmDeliveryData {
+  rating?: number;
+  review?: string;
+}
+
 class OrderService {
   /**
    * Generate unique order number (QT-YYYY-XXXXX)
@@ -502,6 +507,72 @@ class OrderService {
         },
       },
     });
+
+    return order;
+  }
+
+  /**
+   * Confirm delivery (customer only)
+   * Marks order as delivered and releases payment from escrow
+   */
+  async confirmDelivery(orderId: string, userId: string, data: ConfirmDeliveryData): Promise<Order> {
+    // Verify customer owns this order
+    const existing = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        customerId: userId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Order not found or access denied');
+    }
+
+    // Verify order is in SHIPPING status
+    if (existing.status !== 'SHIPPING') {
+      throw new Error('Order must be in shipping status to confirm delivery');
+    }
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: 'DELIVERED',
+        deliveredAt: new Date(),
+        rating: data.rating,
+        review: data.review,
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profileImage: true,
+          },
+        },
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            brandLogo: true,
+            email: true,
+          },
+        },
+        design: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
+            category: true,
+          },
+        },
+      },
+    });
+
+    // TODO: Trigger payment release from escrow to designer
+    // This would integrate with your payment service (Stripe, Paystack, etc.)
+    // Example: await paymentService.releaseEscrow(order.id, order.finalPrice, order.designerId);
 
     return order;
   }

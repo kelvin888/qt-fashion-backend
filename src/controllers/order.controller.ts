@@ -139,6 +139,33 @@ export const addShipment = async (req: Request, res: Response, next: NextFunctio
 };
 
 /**
+ * Confirm delivery (customer only)
+ */
+export const confirmDelivery = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user!.id;
+    const { rating, review } = req.body;
+
+    // Validate rating if provided
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      return res.status(400).json({
+        error: 'Rating must be between 1 and 5',
+      });
+    }
+
+    const order = await orderService.confirmDelivery(orderId, userId, {
+      rating,
+      review,
+    });
+
+    res.status(200).json(order);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
  * Get designer order statistics
  */
 export const getDesignerStats = async (req: Request, res: Response, next: NextFunction) => {
