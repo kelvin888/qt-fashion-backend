@@ -88,7 +88,7 @@ export const proxyTryOn = async (req: Request, res: Response, next: NextFunction
     // External API returns { status: "success", result_url: "https://...", message: "...", tip: "..." }
     const data = apiResponse.data;
     console.log('🔍 Raw external API response:', JSON.stringify(data, null, 2));
-    
+
     const resultUrl = data.result_url;
 
     if (!resultUrl) {

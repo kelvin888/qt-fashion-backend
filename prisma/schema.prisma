@@ -94,6 +94,9 @@ model Design {
   customizable    Boolean         @default(false)
   customizations  Json?           // JSON for custom options
   
+  // Production workflow
+  productionSteps Json?           // Array of {id, title, estimatedTime, description}
+  
   // Metadata
   views           Int             @default(0)
   featured        Boolean         @default(false)

@@ -62,15 +62,36 @@ class OrderService {
   async createOrder(data: CreateOrderData): Promise<Order> {
     const orderNumber = await this.generateOrderNumber();
 
-    // Initialize production steps
-    const defaultSteps: ProductionStep[] = [
-      { step: 'Fabric Sourcing', status: 'pending' },
-      { step: 'Pattern Making', status: 'pending' },
-      { step: 'Cutting', status: 'pending' },
-      { step: 'Sewing', status: 'pending' },
-      { step: 'Quality Check', status: 'pending' },
-      { step: 'Finishing', status: 'pending' },
-    ];
+    // Fetch the design to get custom production steps
+    const design = await prisma.design.findUnique({
+      where: { id: data.designId },
+      select: { productionSteps: true },
+    });
+
+    // Use design's production steps if available, otherwise use defaults
+    let productionSteps: ProductionStep[];
+
+    if (
+      design?.productionSteps &&
+      Array.isArray(design.productionSteps) &&
+      design.productionSteps.length > 0
+    ) {
+      // Transform design production steps to order production steps
+      productionSteps = (design.productionSteps as any[]).map((step: any) => ({
+        step: step.title || step.step,
+        status: 'pending' as const,
+      }));
+    } else {
+      // Fallback to default steps if design has no custom steps
+      productionSteps = [
+        { step: 'Fabric Sourcing', status: 'pending' },
+        { step: 'Pattern Making', status: 'pending' },
+        { step: 'Cutting', status: 'pending' },
+        { step: 'Sewing', status: 'pending' },
+        { step: 'Quality Check', status: 'pending' },
+        { step: 'Finishing', status: 'pending' },
+      ];
+    }
 
     const order = await prisma.order.create({
       data: {
@@ -82,7 +103,7 @@ class OrderService {
         finalPrice: data.finalPrice,
         measurements: data.measurements || {},
         status: 'CONFIRMED',
-        productionSteps: defaultSteps as any,
+        productionSteps: productionSteps as any,
       },
       include: {
         customer: {
