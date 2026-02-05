@@ -175,6 +175,7 @@ class OfferService {
   async acceptOffer(offerId: string, designerId: string) {
     const offer = await prisma.offer.findUnique({
       where: { id: offerId },
+      include: { design: { select: { productionSteps: true } } },
     });
 
     if (!offer) {
@@ -198,43 +199,60 @@ class OfferService {
       throw new Error('Offer has expired');
     }
 
-    const updatedOffer = await prisma.offer.update({
-      where: { id: offerId },
-      data: {
-        status: OfferStatus.ACCEPTED,
-        finalPrice: offer.designerPrice || offer.customerPrice,
-        acceptedAt: new Date(),
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
+    // ✅ Validate production steps BEFORE updating offer status
+    if (
+      !offer.design?.productionSteps ||
+      !Array.isArray(offer.design.productionSteps) ||
+      offer.design.productionSteps.length === 0
+    ) {
+      throw new Error(
+        'This design has no production steps defined. Please contact the designer to add production workflow before placing an order.'
+      );
+    }
+
+    // ✅ Use transaction to ensure offer update and order creation happen atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // Update offer status
+      const updatedOffer = await tx.offer.update({
+        where: { id: offerId },
+        data: {
+          status: OfferStatus.ACCEPTED,
+          finalPrice: offer.designerPrice || offer.customerPrice,
+          acceptedAt: new Date(),
         },
-        designer: {
-          select: {
-            id: true,
-            fullName: true,
-            brandName: true,
+        include: {
+          customer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
           },
+          designer: {
+            select: {
+              id: true,
+              fullName: true,
+              brandName: true,
+            },
+          },
+          design: true,
         },
-        design: true,
-      },
+      });
+
+      // Create order (this will throw if production steps validation fails)
+      await orderService.createOrder({
+        offerId: updatedOffer.id,
+        customerId: updatedOffer.customerId,
+        designerId: updatedOffer.designerId,
+        designId: updatedOffer.designId,
+        finalPrice: updatedOffer.finalPrice!,
+        measurements: updatedOffer.measurements,
+      });
+
+      return updatedOffer;
     });
 
-    // ✅ Create order from accepted offer
-    await orderService.createOrder({
-      offerId: updatedOffer.id,
-      customerId: updatedOffer.customerId,
-      designerId: updatedOffer.designerId,
-      designId: updatedOffer.designId,
-      finalPrice: updatedOffer.finalPrice!,
-      measurements: updatedOffer.measurements,
-    });
-
-    return updatedOffer;
+    return result;
   }
 
   /**
