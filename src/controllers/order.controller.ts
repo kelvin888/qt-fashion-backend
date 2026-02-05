@@ -82,6 +82,27 @@ export const updateProduction = async (req: Request, res: Response, next: NextFu
 };
 
 /**
+ * Update single production step (designer only)
+ */
+export const updateProductionStep = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId, stepId } = req.params;
+    const userId = req.user!.id;
+    const { status, completedAt, notes } = req.body;
+
+    const order = await orderService.updateProductionStep(orderId, userId, stepId, {
+      status,
+      completedAt,
+      notes,
+    });
+
+    res.status(200).json(order);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
  * Add shipment tracking (designer only)
  */
 export const addShipment = async (req: Request, res: Response, next: NextFunction) => {

@@ -32,6 +32,12 @@ interface UpdateProductionData {
   progressNotes?: string;
 }
 
+interface UpdateProductionStepData {
+  status?: 'pending' | 'in_progress' | 'completed';
+  completedAt?: string;
+  notes?: string;
+}
+
 interface UpdateShipmentData {
   carrier: string;
   trackingNumber: string;
@@ -68,30 +74,24 @@ class OrderService {
       select: { productionSteps: true },
     });
 
-    // Use design's production steps if available, otherwise use defaults
-    let productionSteps: ProductionStep[];
-
+    // Production steps are required - designer must define them
     if (
-      design?.productionSteps &&
-      Array.isArray(design.productionSteps) &&
-      design.productionSteps.length > 0
+      !design?.productionSteps ||
+      !Array.isArray(design.productionSteps) ||
+      design.productionSteps.length === 0
     ) {
-      // Transform design production steps to order production steps
-      productionSteps = (design.productionSteps as any[]).map((step: any) => ({
+      throw new Error(
+        'This design has no production steps defined. Please contact the designer to add production workflow before placing an order.'
+      );
+    }
+
+    // Transform design production steps to order production steps
+    const productionSteps: ProductionStep[] = (design.productionSteps as any[]).map(
+      (step: any) => ({
         step: step.title || step.step,
         status: 'pending' as const,
-      }));
-    } else {
-      // Fallback to default steps if design has no custom steps
-      productionSteps = [
-        { step: 'Fabric Sourcing', status: 'pending' },
-        { step: 'Pattern Making', status: 'pending' },
-        { step: 'Cutting', status: 'pending' },
-        { step: 'Sewing', status: 'pending' },
-        { step: 'Quality Check', status: 'pending' },
-        { step: 'Finishing', status: 'pending' },
-      ];
-    }
+      })
+    );
 
     const order = await prisma.order.create({
       data: {
@@ -332,6 +332,81 @@ class OrderService {
     const order = await prisma.order.update({
       where: { id: orderId },
       data: updates,
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profileImage: true,
+          },
+        },
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            brandLogo: true,
+            email: true,
+          },
+        },
+        design: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
+            category: true,
+          },
+        },
+      },
+    });
+
+    return order;
+  }
+
+  /**
+   * Update single production step
+   */
+  async updateProductionStep(
+    orderId: string,
+    userId: string,
+    stepId: string,
+    data: UpdateProductionStepData
+  ): Promise<Order> {
+    // Verify designer owns this order
+    const existing = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        designerId: userId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Order not found or access denied');
+    }
+
+    // Get current production steps
+    const currentSteps = (existing.productionSteps as any[]) || [];
+
+    // Find and update the specific step
+    const updatedSteps = currentSteps.map((step: any) => {
+      if (step.step === stepId) {
+        return {
+          ...step,
+          ...(data.status && { status: data.status }),
+          ...(data.completedAt && { completedAt: data.completedAt }),
+          ...(data.notes && { notes: data.notes }),
+        };
+      }
+      return step;
+    });
+
+    // Update the order
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        productionSteps: updatedSteps as any,
+      },
       include: {
         customer: {
           select: {

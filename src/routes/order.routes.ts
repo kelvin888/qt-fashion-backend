@@ -228,6 +228,53 @@ router.patch('/:orderId/production', orderController.updateProduction);
 
 /**
  * @swagger
+ * /api/orders/{orderId}/production/steps/{stepId}:
+ *   patch:
+ *     tags:
+ *       - Orders
+ *     summary: Update single production step (Designer only)
+ *     description: Designer updates status of a specific production step
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: stepId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The step name (e.g., "Fabric Sourcing")
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, in_progress, completed]
+ *               completedAt:
+ *                 type: string
+ *                 format: date-time
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Production step updated
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Order or step not found
+ */
+router.patch('/:orderId/production/steps/:stepId', orderController.updateProductionStep);
+
+/**
+ * @swagger
  * /api/orders/{orderId}/shipment:
  *   post:
  *     tags:
