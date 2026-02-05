@@ -18,6 +18,7 @@ export const createDesign = async (req: Request, res: Response, next: NextFuncti
       sizes,
       customizable,
       customizations,
+      productionSteps,
     } = req.body;
 
     // Validation - only require essential fields
@@ -45,6 +46,7 @@ export const createDesign = async (req: Request, res: Response, next: NextFuncti
       sizes: sizes || [],
       customizable: customizable !== undefined ? customizable : true,
       customizations,
+      productionSteps: productionSteps || null,
     });
 
     res.status(201).json(design);

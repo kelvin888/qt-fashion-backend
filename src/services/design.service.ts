@@ -14,6 +14,11 @@ export interface CreateDesignData {
   sizes: string[];
   customizable?: boolean;
   customizations?: any;
+  productionSteps?: Array<{
+    title: string;
+    estimatedTime: string;
+    description: string;
+  }>;
 }
 
 export interface UpdateDesignData {
@@ -53,6 +58,7 @@ class DesignService {
         sizes: data.sizes,
         customizable: data.customizable || false,
         customizations: data.customizations,
+        productionSteps: data.productionSteps || null,
       },
       include: {
         designer: {
