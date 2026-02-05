@@ -515,7 +515,11 @@ class OrderService {
    * Confirm delivery (customer only)
    * Marks order as delivered and releases payment from escrow
    */
-  async confirmDelivery(orderId: string, userId: string, data: ConfirmDeliveryData): Promise<Order> {
+  async confirmDelivery(
+    orderId: string,
+    userId: string,
+    data: ConfirmDeliveryData
+  ): Promise<Order> {
     // Verify customer owns this order
     const existing = await prisma.order.findFirst({
       where: {
