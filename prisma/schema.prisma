@@ -190,6 +190,10 @@ model Order {
   estimatedDelivery DateTime?
   deliveredAt     DateTime?
   
+  // Customer feedback (after delivery)
+  rating          Int?          // 1-5 star rating
+  review          String?       // Customer review text
+  
   // Timestamps
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
