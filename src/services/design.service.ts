@@ -58,7 +58,7 @@ class DesignService {
         sizes: data.sizes,
         customizable: data.customizable || false,
         customizations: data.customizations,
-        productionSteps: data.productionSteps || null,
+        productionSteps: data.productionSteps,
       },
       include: {
         designer: {
