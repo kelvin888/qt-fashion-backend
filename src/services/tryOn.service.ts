@@ -135,7 +135,6 @@ class TryOnService {
 
       // Handle ReadableStream with BINARY data (IDM-VTON returns image bytes)
       if (output && typeof output === 'object' && 'getReader' in output) {
-
         const reader = (output as any).getReader();
         const chunks: Uint8Array[] = [];
 
@@ -156,8 +155,6 @@ class TryOnService {
             imageBuffer.set(chunk, offset);
             offset += chunk.length;
           }
-
-
 
           // Check if it's binary image data (starts with JPEG/PNG magic bytes)
           const isJPEG = imageBuffer[0] === 0xff && imageBuffer[1] === 0xd8;
