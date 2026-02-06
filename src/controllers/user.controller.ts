@@ -54,3 +54,33 @@ export const getActiveMeasurement = async (req: Request, res: Response, next: Ne
     next(error);
   }
 };
+
+export const createBodyMeasurement = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id; // From auth middleware
+    const { frontPhoto, sidePhoto } = req.body;
+
+    if (!frontPhoto) {
+      return res.status(400).json({
+        success: false,
+        message: 'Front photo is required',
+      });
+    }
+
+    console.log('📏 Creating body measurement for user:', userId);
+    const measurement = await userService.createBodyMeasurement({
+      userId,
+      frontPhoto,
+      sidePhoto,
+    });
+
+    console.log('✅ Body measurement created:', measurement.id);
+    res.status(201).json({
+      success: true,
+      data: measurement,
+    });
+  } catch (error: any) {
+    console.error('❌ Error creating body measurement:', error);
+    next(error);
+  }
+};

@@ -4,6 +4,7 @@ import {
   getDesignerProfile,
   getUserMeasurements,
   getActiveMeasurement,
+  createBodyMeasurement,
 } from '../controllers/user.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -74,5 +75,32 @@ router.get('/:id/measurements', authenticate, getUserMeasurements);
  *                   type: object
  */
 router.get('/:id/measurements/active', authenticate, getActiveMeasurement);
+
+/**
+ * @swagger
+ * /api/users/measurements:
+ *   post:
+ *     summary: Create body measurement (mocked AI processing)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - frontPhoto
+ *             properties:
+ *               frontPhoto:
+ *                 type: string
+ *               sidePhoto:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Measurement created successfully
+ */
+router.post('/measurements', authenticate, createBodyMeasurement);
 
 export default router;
