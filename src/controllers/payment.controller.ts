@@ -57,9 +57,9 @@ export const verifyPayment = async (req: Request, res: Response) => {
 
     // Verify the payment transaction
     const verificationResult = await paymentService.verifyTransaction(
-      txnRef, 
-      userId, 
-      payRef, 
+      txnRef,
+      userId,
+      payRef,
       isSimulated
     );
 

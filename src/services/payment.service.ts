@@ -168,12 +168,7 @@ export class PaymentService {
   /**
    * Verify payment transaction with Interswitch
    */
-  async verifyTransaction(
-    txnRef: string, 
-    userId: string, 
-    payRef?: string, 
-    isSimulated?: boolean
-  ) {
+  async verifyTransaction(txnRef: string, userId: string, payRef?: string, isSimulated?: boolean) {
     const payment = await prisma.paymentTransaction.findUnique({
       where: { txnRef },
       include: {
@@ -221,7 +216,7 @@ export class PaymentService {
       if (isSimulated || payRef?.startsWith('SIM-')) {
         // For simulated payments, mark as successful without calling Interswitch
         console.log(`[SIMULATION] Processing simulated payment: ${txnRef}, PayRef: ${payRef}`);
-        
+
         const updatedPayment = await prisma.paymentTransaction.update({
           where: { id: payment.id },
           data: {
@@ -241,7 +236,7 @@ export class PaymentService {
           responseCode: '00',
         };
       }
-      
+
       // Call Interswitch API to verify transaction
       const amountInKobo = Math.round(payment.amount * 100);
       const url = `${this.apiBaseUrl}/collections/api/v1/gettransaction.json`;
