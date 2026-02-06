@@ -3,7 +3,13 @@ import offerService from '../services/offer.service';
 
 export const createOffer = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('🔵 [CREATE OFFER] Received request body:', JSON.stringify(req.body, null, 2));
     const { designId, customerPrice, measurements, notes, expiresAt } = req.body;
+
+    console.log('🔵 [CREATE OFFER] Extracted measurements:', measurements);
+    console.log('🔵 [CREATE OFFER] measurements type:', typeof measurements);
+    console.log('🔵 [CREATE OFFER] measurements is null?', measurements === null);
+    console.log('🔵 [CREATE OFFER] measurements is undefined?', measurements === undefined);
 
     // Validation
     if (!designId || !customerPrice) {
@@ -23,8 +29,10 @@ export const createOffer = async (req: Request, res: Response, next: NextFunctio
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
 
+    console.log('🔵 [CREATE OFFER] Created offer with measurements:', offer.measurements);
     res.status(201).json(offer);
   } catch (error: any) {
+    console.error('❌ [CREATE OFFER] Error:', error);
     next(error);
   }
 };

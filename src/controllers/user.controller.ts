@@ -24,3 +24,33 @@ export const getDesignerProfile = async (req: Request, res: Response, next: Next
     next(error);
   }
 };
+
+export const getUserMeasurements = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const measurements = await userService.getUserMeasurements(id);
+
+    res.status(200).json({
+      success: true,
+      data: measurements,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const getActiveMeasurement = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const measurement = await userService.getActiveMeasurement(id);
+
+    res.status(200).json({
+      success: true,
+      data: measurement,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};

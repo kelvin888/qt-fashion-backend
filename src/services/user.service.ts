@@ -77,6 +77,32 @@ class UserService {
       },
     };
   }
+
+  /**
+   * Get user's body measurements
+   */
+  async getUserMeasurements(userId: string) {
+    const measurements = await prisma.bodyMeasurement.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return measurements;
+  }
+
+  /**
+   * Get user's active measurement
+   */
+  async getActiveMeasurement(userId: string) {
+    const measurement = await prisma.bodyMeasurement.findFirst({
+      where: { 
+        userId,
+        isActive: true,
+      },
+    });
+
+    return measurement;
+  }
 }
 
 export default new UserService();
