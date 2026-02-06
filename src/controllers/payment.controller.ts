@@ -42,7 +42,7 @@ export const initiatePayment = async (req: Request, res: Response) => {
  */
 export const verifyPayment = async (req: Request, res: Response) => {
   try {
-    const { txnRef, addressId } = req.body;
+    const { txnRef, addressId, payRef, isSimulated } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -56,7 +56,12 @@ export const verifyPayment = async (req: Request, res: Response) => {
     }
 
     // Verify the payment transaction
-    const verificationResult = await paymentService.verifyTransaction(txnRef, userId);
+    const verificationResult = await paymentService.verifyTransaction(
+      txnRef, 
+      userId, 
+      payRef, 
+      isSimulated
+    );
 
     // If payment is successful and no order exists yet, create the order
     if (verificationResult.success && !verificationResult.payment.orderId) {
