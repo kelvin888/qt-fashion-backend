@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { v2 as cloudinary } from 'cloudinary';
 
 const prisma = new PrismaClient();
 
@@ -105,32 +106,59 @@ class UserService {
   }
 
   /**
-   * Create body measurement with mocked AI values
+   * Create body measurement
    */
-  async createBodyMeasurement(data: { userId: string; frontPhoto: string; sidePhoto?: string }) {
-    // First, deactivate all existing measurements for this user
-    await prisma.bodyMeasurement.updateMany({
+  async createBodyMeasurement(data: {
+    userId: string;
+    frontPhoto: string;
+    sidePhoto?: string;
+    chest: number;
+    waist: number;
+    hips: number;
+    height: number;
+    shoulder: number;
+    armLength: number;
+    inseam: number;
+    neck: number;
+  }) {
+    // Find and delete existing measurements for this user
+    const existingMeasurements = await prisma.bodyMeasurement.findMany({
       where: { userId: data.userId },
-      data: { isActive: false },
+      select: { id: true, frontPhoto: true, sidePhoto: true },
     });
 
-    // Mock measurement values (will be replaced with actual AI processing later)
-    const mockedMeasurements = {
-      chest: Math.round(85 + Math.random() * 20), // 85-105 cm
-      waist: Math.round(70 + Math.random() * 20), // 70-90 cm
-      hips: Math.round(90 + Math.random() * 20), // 90-110 cm
-      height: Math.round(160 + Math.random() * 30), // 160-190 cm
-      shoulder: Math.round(40 + Math.random() * 10), // 40-50 cm
-      armLength: Math.round(55 + Math.random() * 15), // 55-70 cm
-      inseam: Math.round(70 + Math.random() * 20), // 70-90 cm
-      neck: Math.round(35 + Math.random() * 10), // 35-45 cm
-      aiConfidenceScore: 0.85 + Math.random() * 0.1, // 85-95%
-      aiMetadata: {
-        processingTime: '2.3s',
-        model: 'mock-ai-v1',
-        timestamp: new Date().toISOString(),
-      },
-    };
+    // Delete old Cloudinary photos
+    if (existingMeasurements.length > 0) {
+      console.log(`🗑️  Deleting ${existingMeasurements.length} old measurements and photos`);
+      
+      for (const oldMeasurement of existingMeasurements) {
+        // Extract and delete Cloudinary images
+        try {
+          if (oldMeasurement.frontPhoto) {
+            const publicId = this.extractCloudinaryPublicId(oldMeasurement.frontPhoto);
+            if (publicId) {
+              await cloudinary.uploader.destroy(publicId);
+              console.log(`✅ Deleted front photo: ${publicId}`);
+            }
+          }
+          if (oldMeasurement.sidePhoto) {
+            const publicId = this.extractCloudinaryPublicId(oldMeasurement.sidePhoto);
+            if (publicId) {
+              await cloudinary.uploader.destroy(publicId);
+              console.log(`✅ Deleted side photo: ${publicId}`);
+            }
+          }
+        } catch (error) {
+          console.error('⚠️  Error deleting Cloudinary photo:', error);
+          // Continue even if deletion fails
+        }
+      }
+
+      // Delete old measurement records from database
+      await prisma.bodyMeasurement.deleteMany({
+        where: { userId: data.userId },
+      });
+    }
 
     // Create new measurement record
     const measurement = await prisma.bodyMeasurement.create({
@@ -138,12 +166,38 @@ class UserService {
         userId: data.userId,
         frontPhoto: data.frontPhoto,
         sidePhoto: data.sidePhoto,
-        ...mockedMeasurements,
+        chest: data.chest,
+        waist: data.waist,
+        hips: data.hips,
+        height: data.height,
+        shoulder: data.shoulder,
+        armLength: data.armLength,
+        inseam: data.inseam,
+        neck: data.neck,
+        aiConfidenceScore: 0.85 + Math.random() * 0.1,
+        aiMetadata: {
+          processingTime: '2.3s',
+          model: 'mock-ai-v1',
+          timestamp: new Date().toISOString(),
+        },
         isActive: true,
       },
     });
 
     return measurement;
+  }
+
+  /**
+   * Extract Cloudinary public ID from URL
+   * Example: https://res.cloudinary.com/demo/image/upload/v1234567890/measurements/abc123.jpg -> measurements/abc123
+   */
+  private extractCloudinaryPublicId(url: string): string | null {
+    try {
+      const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[^.]+$/);
+      return match ? match[1] : null;
+    } catch (error) {
+      return null;
+    }
   }
 }
 
