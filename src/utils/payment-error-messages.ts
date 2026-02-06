@@ -13,7 +13,7 @@ export const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
   '09': 'Transaction in progress',
 
   // Cancellation
-  'Z6': 'Payment cancelled',
+  Z6: 'Payment cancelled',
   '17': 'Payment cancelled by customer',
 
   // Insufficient funds
@@ -41,9 +41,9 @@ export const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
   '62': 'Restricted card, please contact your bank',
   '65': 'Withdrawal frequency exceeded',
   '98': 'Exceeds cash limit',
-  'X03': 'Amount exceeds maximum allowed',
-  'X04': 'Amount below minimum required',
-  'X05': 'Amount exceeds limit permitted by your bank',
+  X03: 'Amount exceeds maximum allowed',
+  X04: 'Amount below minimum required',
+  X05: 'Amount exceeds limit permitted by your bank',
 
   // Bank/System issues
   '01': 'Please contact your bank',
@@ -68,13 +68,13 @@ export const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
 
   // Duplicate/Reference errors
   '94': 'Duplicate transaction detected',
-  'Z5': 'This transaction reference has already been used',
-  'Z25': 'Transaction not found',
+  Z5: 'This transaction reference has already been used',
+  Z25: 'Transaction not found',
 
   // Timeout/Expiration
-  'XS1': 'Transaction time expired',
-  'Z0': 'Transaction not completed',
-  'Z1': 'Transaction error occurred',
+  XS1: 'Transaction time expired',
+  Z0: 'Transaction not completed',
+  Z1: 'Transaction error occurred',
 
   // Account issues
   '39': 'No credit account found',
@@ -82,31 +82,31 @@ export const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
   '48': 'No customer record found',
   '52': 'No checking account found',
   '53': 'No savings account found',
-  'Z2': 'Bank account error',
-  'Z3': 'Bank collections account error',
+  Z2: 'Bank account error',
+  Z3: 'Bank collections account error',
 
   // 3D Secure/OTP issues
-  'M0': 'Cardholder not enrolled for OTP',
-  'T0': 'Payment requires authentication',
-  'T1': 'No response received for authentication',
-  'Z61': 'Payment requires token',
-  'Z62': 'Token generation successful',
-  'Z63': 'Customer not registered on token platform',
-  'Z64': 'Could not generate token',
-  'Z65': 'Payment requires token authorization',
-  'Z66': 'Token authorization successful',
-  'Z67': 'Incorrect token supplied',
-  'Z68': 'Could not authenticate token',
-  'Z69': 'Customer cancelled secure authentication',
+  M0: 'Cardholder not enrolled for OTP',
+  T0: 'Payment requires authentication',
+  T1: 'No response received for authentication',
+  Z61: 'Payment requires token',
+  Z62: 'Token generation successful',
+  Z63: 'Customer not registered on token platform',
+  Z64: 'Could not generate token',
+  Z65: 'Payment requires token authorization',
+  Z66: 'Token authorization successful',
+  Z67: 'Incorrect token supplied',
+  Z68: 'Could not authenticate token',
+  Z69: 'Customer cancelled secure authentication',
 
   // Integration errors
-  'Z4': 'Integration error occurred',
-  'Z7': 'Transaction pre-processing error',
-  'Z8': 'Invalid card number',
-  'XGO': 'Cannot retrieve collections account',
+  Z4: 'Integration error occurred',
+  Z7: 'Transaction pre-processing error',
+  Z8: 'Invalid card number',
+  XGO: 'Cannot retrieve collections account',
 
   // Rate limiting
-  'Z162': 'Transaction rate limit exceeded',
+  Z162: 'Transaction rate limit exceeded',
 
   // HTTP/API errors
   '10400': 'Bad request - please try again',
@@ -114,7 +114,7 @@ export const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
   '10500': 'Server error - please try again',
 
   // General fallback
-  'DEFAULT': 'Payment failed. Please try again or contact support',
+  DEFAULT: 'Payment failed. Please try again or contact support',
 };
 
 /**
@@ -151,11 +151,17 @@ export function isPaymentCancelled(responseCode: string): boolean {
 export function canRetryPayment(responseCode: string): boolean {
   // Don't retry if successful, cancelled, or duplicate
   const noRetryCodes = [
-    '00', '10', '11', // Successful
-    'Z6', '17', 'Z69', // Cancelled
-    '94', 'Z5', // Duplicate
-    '41', '43', // Lost/Stolen card
+    '00',
+    '10',
+    '11', // Successful
+    'Z6',
+    '17',
+    'Z69', // Cancelled
+    '94',
+    'Z5', // Duplicate
+    '41',
+    '43', // Lost/Stolen card
   ];
-  
+
   return !noRetryCodes.includes(responseCode);
 }

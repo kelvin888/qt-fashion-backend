@@ -49,7 +49,8 @@ export class PaymentService {
     this.payItemId = process.env.INTERSWITCH_PAY_ITEM_ID || 'Default_Payable_MX51309';
     this.mode = process.env.INTERSWITCH_MODE || 'TEST';
     this.apiBaseUrl = process.env.INTERSWITCH_API_BASE_URL || 'https://qa.interswitchng.com';
-    this.inlineScriptUrl = process.env.INTERSWITCH_INLINE_SCRIPT_URL || 
+    this.inlineScriptUrl =
+      process.env.INTERSWITCH_INLINE_SCRIPT_URL ||
       'https://newwebpay.qa.interswitchng.com/inline-checkout.js';
   }
 
@@ -143,10 +144,7 @@ export class PaymentService {
   /**
    * Prepare checkout parameters for Interswitch inline checkout
    */
-  private prepareCheckoutParams(
-    payment: any,
-    customer: any
-  ): InterswitchCheckoutParams {
+  private prepareCheckoutParams(payment: any, customer: any): InterswitchCheckoutParams {
     return {
       merchant_code: this.merchantCode,
       pay_item_id: this.payItemId,

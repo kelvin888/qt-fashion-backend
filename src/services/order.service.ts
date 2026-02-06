@@ -148,7 +148,10 @@ class OrderService {
   /**
    * Create order from successful payment transaction
    */
-  async createOrderFromPayment(paymentTransactionId: string, shippingAddressId: string): Promise<Order> {
+  async createOrderFromPayment(
+    paymentTransactionId: string,
+    shippingAddressId: string
+  ): Promise<Order> {
     // Fetch payment transaction with offer details
     const payment = await prisma.paymentTransaction.findUnique({
       where: { id: paymentTransactionId },
@@ -200,9 +203,7 @@ class OrderService {
       !Array.isArray(offer.design.productionSteps) ||
       offer.design.productionSteps.length === 0
     ) {
-      throw new Error(
-        'This design has no production steps defined. Cannot create order.'
-      );
+      throw new Error('This design has no production steps defined. Cannot create order.');
     }
 
     // Transform design production steps to order production steps

@@ -16,16 +16,12 @@ export const initiatePayment = async (req: Request, res: Response) => {
     }
 
     if (!offerId || !addressId) {
-      return res.status(400).json({ 
-        error: 'Offer ID and Address ID are required' 
+      return res.status(400).json({
+        error: 'Offer ID and Address ID are required',
       });
     }
 
-    const checkoutParams = await paymentService.initiatePayment(
-      offerId,
-      addressId,
-      userId
-    );
+    const checkoutParams = await paymentService.initiatePayment(offerId, addressId, userId);
 
     res.status(200).json({
       success: true,
@@ -34,8 +30,8 @@ export const initiatePayment = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error initiating payment:', error);
-    res.status(400).json({ 
-      error: error.message || 'Failed to initiate payment' 
+    res.status(400).json({
+      error: error.message || 'Failed to initiate payment',
     });
   }
 };
@@ -54,8 +50,8 @@ export const verifyPayment = async (req: Request, res: Response) => {
     }
 
     if (!txnRef || !addressId) {
-      return res.status(400).json({ 
-        error: 'Transaction reference and Address ID are required' 
+      return res.status(400).json({
+        error: 'Transaction reference and Address ID are required',
       });
     }
 
@@ -106,8 +102,8 @@ export const verifyPayment = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error verifying payment:', error);
-    res.status(400).json({ 
-      error: error.message || 'Failed to verify payment' 
+    res.status(400).json({
+      error: error.message || 'Failed to verify payment',
     });
   }
 };
@@ -124,7 +120,12 @@ export const handleWebhook = async (req: Request, res: Response) => {
     const result = await paymentService.handleWebhook(payload);
 
     // If payment is successful, try to create order
-    if (result.processed && result.payment && result.payment.status === 'SUCCESSFUL' && !result.payment.orderId) {
+    if (
+      result.processed &&
+      result.payment &&
+      result.payment.status === 'SUCCESSFUL' &&
+      !result.payment.orderId
+    ) {
       // Find the address from the payment context
       // Note: You might need to store addressId in payment transaction for webhooks
       console.log('Webhook: Payment successful but order not created yet');
@@ -137,8 +138,8 @@ export const handleWebhook = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error processing webhook:', error);
-    res.status(500).json({ 
-      error: error.message || 'Failed to process webhook' 
+    res.status(500).json({
+      error: error.message || 'Failed to process webhook',
     });
   }
 };
@@ -164,8 +165,8 @@ export const getPaymentByRef = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching payment:', error);
-    res.status(400).json({ 
-      error: error.message || 'Failed to fetch payment' 
+    res.status(400).json({
+      error: error.message || 'Failed to fetch payment',
     });
   }
 };

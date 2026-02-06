@@ -77,9 +77,9 @@ export const createAddress = async (req: Request, res: Response) => {
     });
 
     if (errors.length > 0) {
-      return res.status(400).json({ 
-        error: 'Validation failed', 
-        details: errors 
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors,
       });
     }
 
@@ -130,9 +130,9 @@ export const updateAddress = async (req: Request, res: Response) => {
     });
 
     if (errors.length > 0) {
-      return res.status(400).json({ 
-        error: 'Validation failed', 
-        details: errors 
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors,
       });
     }
 
