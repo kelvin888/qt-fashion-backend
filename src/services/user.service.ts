@@ -107,11 +107,7 @@ class UserService {
   /**
    * Create body measurement with mocked AI values
    */
-  async createBodyMeasurement(data: {
-    userId: string;
-    frontPhoto: string;
-    sidePhoto?: string;
-  }) {
+  async createBodyMeasurement(data: { userId: string; frontPhoto: string; sidePhoto?: string }) {
     // First, deactivate all existing measurements for this user
     await prisma.bodyMeasurement.updateMany({
       where: { userId: data.userId },
