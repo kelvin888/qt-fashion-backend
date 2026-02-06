@@ -51,10 +51,10 @@ app.use('/api/designs', designRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/users/:userId/addresses', addressRoutes); // Address routes nested under users
 app.use('/api/try-on', tryOnRoutes);
 app.use('/api/uploads', uploadRoutes);
-app.use('/api/payments', paymentRoutes); // Payment routes
+app.use('/api/payments', paymentRoutes);
+app.use('/api/addresses', addressRoutes);
 
 // 404 handler
 app.use((req, res) => {

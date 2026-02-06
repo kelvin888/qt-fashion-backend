@@ -9,48 +9,48 @@ import {
   deleteAddress,
 } from '../controllers/address.controller';
 
-const router = Router({ mergeParams: true }); // mergeParams to access :userId from parent router
+const router = Router();
 
 /**
- * @route   GET /api/users/:userId/addresses
+ * @route   GET /api/addresses/:userId
  * @desc    Get all addresses for a user
  * @access  Private
  */
-router.get('/', authenticate, getUserAddresses);
+router.get('/:userId', authenticate, getUserAddresses);
 
 /**
- * @route   GET /api/users/:userId/addresses/:addressId
+ * @route   GET /api/addresses/:userId/:addressId
  * @desc    Get a single address by ID
  * @access  Private
  */
-router.get('/:addressId', authenticate, getAddressById);
+router.get('/:userId/:addressId', authenticate, getAddressById);
 
 /**
- * @route   POST /api/users/:userId/addresses
+ * @route   POST /api/addresses/:userId
  * @desc    Create a new address
  * @access  Private
  */
-router.post('/', authenticate, createAddress);
+router.post('/:userId', authenticate, createAddress);
 
 /**
- * @route   PUT /api/users/:userId/addresses/:addressId
+ * @route   PUT /api/addresses/:userId/:addressId
  * @desc    Update an existing address
  * @access  Private
  */
-router.put('/:addressId', authenticate, updateAddress);
+router.put('/:userId/:addressId', authenticate, updateAddress);
 
 /**
- * @route   PATCH /api/users/:userId/addresses/:addressId/set-default
+ * @route   PATCH /api/addresses/:userId/:addressId/set-default
  * @desc    Set an address as default
  * @access  Private
  */
-router.patch('/:addressId/set-default', authenticate, setDefaultAddress);
+router.patch('/:userId/:addressId/set-default', authenticate, setDefaultAddress);
 
 /**
- * @route   DELETE /api/users/:userId/addresses/:addressId
+ * @route   DELETE /api/addresses/:userId/:addressId
  * @desc    Delete an address
  * @access  Private
  */
-router.delete('/:addressId', authenticate, deleteAddress);
+router.delete('/:userId/:addressId', authenticate, deleteAddress);
 
 export default router;
