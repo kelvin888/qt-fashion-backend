@@ -95,7 +95,7 @@ class UserService {
    */
   async getActiveMeasurement(userId: string) {
     const measurement = await prisma.bodyMeasurement.findFirst({
-      where: { 
+      where: {
         userId,
         isActive: true,
       },

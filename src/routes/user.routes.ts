@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { getUserById, getDesignerProfile, getUserMeasurements, getActiveMeasurement } from '../controllers/user.controller';
+import {
+  getUserById,
+  getDesignerProfile,
+  getUserMeasurements,
+  getActiveMeasurement,
+} from '../controllers/user.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
