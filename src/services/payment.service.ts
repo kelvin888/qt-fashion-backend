@@ -98,7 +98,8 @@ export class PaymentService {
     }
 
     // Validate measurements exist (either on offer or customer profile)
-    const hasMeasurements = offer.measurements || (offer.customer.measurements && offer.customer.measurements.length > 0);
+    const hasMeasurements =
+      offer.measurements || (offer.customer.measurements && offer.customer.measurements.length > 0);
     if (!hasMeasurements) {
       throw new Error('Measurements are required before payment');
     }
