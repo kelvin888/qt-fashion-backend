@@ -11,6 +11,7 @@ export interface CreateOfferData {
   measurements?: any;
   notes?: string;
   expiresAt?: Date;
+  tryOnImageUrl?: string;
 }
 
 export interface CounterOfferData {
@@ -44,6 +45,7 @@ class OfferService {
         customerPrice: data.customerPrice,
         measurements: data.measurements,
         notes: data.notes,
+        tryOnImageUrl: data.tryOnImageUrl,
         expiresAt,
         status: OfferStatus.PENDING,
       },
@@ -368,6 +370,42 @@ class OfferService {
     });
 
     return updatedOffer;
+  }
+
+  /**
+   * Get customer measurements for an offer (Designer can view)
+   */
+  async getOfferMeasurements(offerId: string, userId: string) {
+    // Verify offer exists and user is authorized
+    const offer = await prisma.offer.findUnique({
+      where: { id: offerId },
+      select: {
+        designerId: true,
+        customerId: true,
+      },
+    });
+
+    if (!offer) {
+      throw new Error('Offer not found');
+    }
+
+    // Only designer or the customer can view measurements
+    if (offer.designerId !== userId && offer.customerId !== userId) {
+      throw new Error('Unauthorized to view measurements for this offer');
+    }
+
+    // Get the customer's active measurements
+    const measurements = await prisma.bodyMeasurement.findFirst({
+      where: {
+        userId: offer.customerId,
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return measurements;
   }
 }
 

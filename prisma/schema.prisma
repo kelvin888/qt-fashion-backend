@@ -148,6 +148,9 @@ model Offer {
   // Customer measurements (optional - for custom orders)
   measurements    Json?
   
+  // Try-on image (if customer did virtual try-on before making offer)
+  tryOnImageUrl   String?
+  
   // Additional details
   notes           String?       // Customer's notes/requirements
   designerNotes   String?       // Designer's response notes

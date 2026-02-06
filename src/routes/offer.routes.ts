@@ -216,4 +216,39 @@ router.get('/', offerController.getOffers);
  */
 router.get('/:id', offerController.getOfferById);
 
+/**
+ * @swagger
+ * /api/offers/{id}/measurements:
+ *   get:
+ *     tags:
+ *       - Offers
+ *     summary: Get customer measurements for an offer (Designer/Customer only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Offer ID
+ *     responses:
+ *       200:
+ *         description: Customer body measurements
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 measurements:
+ *                   type: object
+ *       404:
+ *         description: Offer or measurements not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/:id/measurements', offerController.getOfferMeasurements);
+
 export default router;

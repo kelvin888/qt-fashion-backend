@@ -4,12 +4,13 @@ import offerService from '../services/offer.service';
 export const createOffer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log('🔵 [CREATE OFFER] Received request body:', JSON.stringify(req.body, null, 2));
-    const { designId, customerPrice, measurements, notes, expiresAt } = req.body;
+    const { designId, customerPrice, measurements, notes, expiresAt, tryOnImageUrl } = req.body;
 
     console.log('🔵 [CREATE OFFER] Extracted measurements:', measurements);
     console.log('🔵 [CREATE OFFER] measurements type:', typeof measurements);
     console.log('🔵 [CREATE OFFER] measurements is null?', measurements === null);
     console.log('🔵 [CREATE OFFER] measurements is undefined?', measurements === undefined);
+    console.log('🔵 [CREATE OFFER] tryOnImageUrl:', tryOnImageUrl);
 
     // Validation
     if (!designId || !customerPrice) {
@@ -26,6 +27,7 @@ export const createOffer = async (req: Request, res: Response, next: NextFunctio
       customerPrice: parseFloat(customerPrice),
       measurements,
       notes,
+      tryOnImageUrl,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
 
@@ -113,6 +115,21 @@ export const withdrawOffer = async (req: Request, res: Response, next: NextFunct
     const offer = await offerService.withdrawOffer(id, req.user!.id);
 
     res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const getOfferMeasurements = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const measurements = await offerService.getOfferMeasurements(id, req.user!.id);
+
+    res.status(200).json({
+      success: true,
+      measurements,
+    });
   } catch (error: any) {
     next(error);
   }
