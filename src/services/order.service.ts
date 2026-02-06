@@ -188,6 +188,49 @@ class OrderService {
       throw new Error('Offer must be accepted before creating order');
     }
 
+    // Check if an order already exists for this offer
+    const existingOrder = await prisma.order.findUnique({
+      where: { offerId: offer.id },
+      include: {
+        payment: true,
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            email: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        design: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
+            category: true,
+          },
+        },
+        offer: true,
+      },
+    });
+
+    if (existingOrder) {
+      // If order exists, just link this payment to it if not already linked
+      if (!payment.orderId) {
+        await prisma.paymentTransaction.update({
+          where: { id: paymentTransactionId },
+          data: { orderId: existingOrder.id },
+        });
+      }
+      return existingOrder;
+    }
+
     // Validate address
     const address = await prisma.address.findUnique({
       where: { id: shippingAddressId },
