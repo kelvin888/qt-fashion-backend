@@ -210,49 +210,35 @@ class OfferService {
       );
     }
 
-    // ✅ Use transaction to ensure offer update and order creation happen atomically
-    const result = await prisma.$transaction(async (tx) => {
-      // Update offer status
-      const updatedOffer = await tx.offer.update({
-        where: { id: offerId },
-        data: {
-          status: OfferStatus.ACCEPTED,
-          finalPrice: offer.designerPrice || offer.customerPrice,
-          acceptedAt: new Date(),
-        },
-        include: {
-          customer: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-            },
+    // Update offer status to ACCEPTED
+    // Order will be created after customer makes payment
+    const updatedOffer = await prisma.offer.update({
+      where: { id: offerId },
+      data: {
+        status: OfferStatus.ACCEPTED,
+        finalPrice: offer.designerPrice || offer.customerPrice,
+        acceptedAt: new Date(),
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
           },
-          designer: {
-            select: {
-              id: true,
-              fullName: true,
-              brandName: true,
-            },
-          },
-          design: true,
         },
-      });
-
-      // Create order (this will throw if production steps validation fails)
-      await orderService.createOrder({
-        offerId: updatedOffer.id,
-        customerId: updatedOffer.customerId,
-        designerId: updatedOffer.designerId,
-        designId: updatedOffer.designId,
-        finalPrice: updatedOffer.finalPrice!,
-        measurements: updatedOffer.measurements,
-      });
-
-      return updatedOffer;
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+          },
+        },
+        design: true,
+      },
     });
 
-    return result;
+    return updatedOffer;
   }
 
   /**

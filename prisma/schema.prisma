@@ -39,6 +39,14 @@ enum OrderStatus {
   CANCELLED     // Order cancelled
 }
 
+enum PaymentStatus {
+  PENDING       // Payment initiated, awaiting completion
+  SUCCESSFUL    // Payment completed successfully
+  FAILED        // Payment failed
+  CANCELLED     // Payment cancelled by user
+  EXPIRED       // Payment link expired (30 minutes)
+}
+
 // Note: Category is now a String field (not enum) to allow dynamic categories
 // without requiring database migrations. Frontend can add new categories anytime.
 
@@ -72,6 +80,7 @@ model User {
   ordersAsDesigner  Order[]  @relation("DesignerOrders")
   measurements  BodyMeasurement[]  @relation("UserMeasurements")
   walletTransactions WalletTransaction[] @relation("UserWalletTransactions")
+  addresses     Address[]  @relation("UserAddresses")
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -198,6 +207,13 @@ model Order {
   rating          Int?          // 1-5 star rating
   review          String?       // Customer review text
   
+  // Payment and shipping
+  paymentTransactionId String?  @unique
+  paymentTransaction   PaymentTransaction? @relation("OrderPayment", fields: [paymentTransactionId], references: [id])
+  
+  shippingAddressId    String?
+  shippingAddress      Address? @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
+  
   // Timestamps
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -208,6 +224,8 @@ model Order {
   @@index([designId])
   @@index([status])
   @@index([orderNumber])
+  @@index([paymentTransactionId])
+  @@index([shippingAddressId])
 }
 
 // Body measurements for virtual try-on
@@ -262,4 +280,68 @@ model WalletTransaction {
   @@map("wallet_transactions")
   @@index([userId])
   @@index([orderId])
+}
+
+// Shipping addresses for customers
+model Address {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation("UserAddresses", fields: [userId], references: [id], onDelete: Cascade)
+  
+  addressLine1    String
+  addressLine2    String?
+  city            String
+  state           String
+  country         String
+  postalCode      String
+  isDefault       Boolean   @default(false)
+  
+  // Relations
+  orders          Order[]   @relation("OrderShippingAddress")
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("addresses")
+  @@index([userId])
+  @@index([userId, isDefault])
+}
+
+// Payment transactions with Interswitch
+model PaymentTransaction {
+  id                    String        @id @default(cuid())
+  
+  // Related records
+  offerId               String
+  orderId               String?       // Populated after successful payment
+  order                 Order?        @relation("OrderPayment")
+  
+  // Transaction identifiers
+  txnRef                String        @unique // Our generated transaction reference
+  paymentReference      String?       // Interswitch payment reference
+  
+  // Payment details
+  amount                Float         // Amount in Naira
+  currency              String        @default("566") // ISO 4217 code for NGN
+  status                PaymentStatus @default(PENDING)
+  
+  // Interswitch response
+  responseCode          String?       // Response code from Interswitch
+  responseDescription   String?       // Response description from Interswitch
+  
+  // Retry tracking
+  retriesCount          Int           @default(0)
+  
+  // Expiration (30 minutes from creation)
+  expiresAt             DateTime
+  paidAt                DateTime?
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@map("payment_transactions")
+  @@index([offerId])
+  @@index([txnRef])
+  @@index([status])
+  @@index([expiresAt])
 }

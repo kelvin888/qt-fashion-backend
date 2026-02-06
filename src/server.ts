@@ -11,6 +11,8 @@ import orderRoutes from './routes/order.routes';
 import userRoutes from './routes/user.routes';
 import tryOnRoutes from './routes/tryOn.routes';
 import uploadRoutes from './routes/upload.routes';
+import paymentRoutes from './routes/payment.routes';
+import addressRoutes from './routes/address.routes';
 
 // Load environment variables
 dotenv.config();
@@ -49,8 +51,10 @@ app.use('/api/designs', designRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/users/:userId/addresses', addressRoutes); // Address routes nested under users
 app.use('/api/try-on', tryOnRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/payments', paymentRoutes); // Payment routes
 
 // 404 handler
 app.use((req, res) => {

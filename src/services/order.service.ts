@@ -146,6 +146,132 @@ class OrderService {
   }
 
   /**
+   * Create order from successful payment transaction
+   */
+  async createOrderFromPayment(paymentTransactionId: string, shippingAddressId: string): Promise<Order> {
+    // Fetch payment transaction with offer details
+    const payment = await prisma.paymentTransaction.findUnique({
+      where: { id: paymentTransactionId },
+      include: {
+        order: true,
+      },
+    });
+
+    if (!payment) {
+      throw new Error('Payment transaction not found');
+    }
+
+    if (payment.status !== 'SUCCESSFUL') {
+      throw new Error('Payment must be successful to create order');
+    }
+
+    if (payment.orderId) {
+      throw new Error('Order already exists for this payment');
+    }
+
+    // Fetch offer details
+    const offer = await prisma.offer.findUnique({
+      where: { id: payment.offerId },
+      include: {
+        design: { select: { productionSteps: true, id: true, title: true } },
+      },
+    });
+
+    if (!offer) {
+      throw new Error('Offer not found');
+    }
+
+    if (offer.status !== 'ACCEPTED') {
+      throw new Error('Offer must be accepted before creating order');
+    }
+
+    // Validate address
+    const address = await prisma.address.findUnique({
+      where: { id: shippingAddressId },
+    });
+
+    if (!address || address.userId !== offer.customerId) {
+      throw new Error('Invalid shipping address');
+    }
+
+    // Validate production steps
+    if (
+      !offer.design?.productionSteps ||
+      !Array.isArray(offer.design.productionSteps) ||
+      offer.design.productionSteps.length === 0
+    ) {
+      throw new Error(
+        'This design has no production steps defined. Cannot create order.'
+      );
+    }
+
+    // Transform design production steps to order production steps
+    const productionSteps: ProductionStep[] = (offer.design.productionSteps as any[]).map(
+      (step: any) => ({
+        step: step.title || step.step,
+        status: 'pending' as const,
+      })
+    );
+
+    const orderNumber = await this.generateOrderNumber();
+
+    // Create order with payment and address links
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        offerId: offer.id,
+        customerId: offer.customerId,
+        designerId: offer.designerId,
+        designId: offer.designId,
+        finalPrice: payment.amount,
+        measurements: offer.measurements || {},
+        status: 'PENDING',
+        productionSteps: productionSteps as any,
+        paymentTransactionId: payment.id,
+        shippingAddressId: address.id,
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profileImage: true,
+          },
+        },
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            brandLogo: true,
+            email: true,
+          },
+        },
+        design: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
+            category: true,
+          },
+        },
+        offer: true,
+        paymentTransaction: true,
+        shippingAddress: true,
+      },
+    });
+
+    // Update payment transaction with order ID
+    await prisma.paymentTransaction.update({
+      where: { id: payment.id },
+      data: { orderId: order.id },
+    });
+
+    return order;
+  }
+
+  /**
    * Get all orders (filtered by user role)
    */
   async getOrders(userId: string, userRole: string): Promise<Order[]> {
