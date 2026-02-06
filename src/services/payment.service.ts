@@ -67,11 +67,15 @@ export class PaymentService {
    * Initiate payment - creates PaymentTransaction and returns checkout params
    */
   async initiatePayment(offerId: string, addressId: string, userId: string) {
-    // Fetch offer with customer details
+    // Fetch offer with customer details and measurements
     const offer = await prisma.offer.findUnique({
       where: { id: offerId },
       include: {
-        customer: true,
+        customer: {
+          include: {
+            measurements: true,
+          },
+        },
         designer: true,
         design: true,
       },
@@ -93,8 +97,9 @@ export class PaymentService {
       throw new Error('Offer does not have a final price');
     }
 
-    // Validate measurements exist
-    if (!offer.measurements) {
+    // Validate measurements exist (either on offer or customer profile)
+    const hasMeasurements = offer.measurements || (offer.customer.measurements && offer.customer.measurements.length > 0);
+    if (!hasMeasurements) {
       throw new Error('Measurements are required before payment');
     }
 
