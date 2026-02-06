@@ -130,7 +130,7 @@ class UserService {
     // Delete old Cloudinary photos
     if (existingMeasurements.length > 0) {
       console.log(`🗑️  Deleting ${existingMeasurements.length} old measurements and photos`);
-      
+
       for (const oldMeasurement of existingMeasurements) {
         // Extract and delete Cloudinary images
         try {

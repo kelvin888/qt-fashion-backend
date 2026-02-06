@@ -58,9 +58,20 @@ export const getActiveMeasurement = async (req: Request, res: Response, next: Ne
 export const createBodyMeasurement = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id; // From auth middleware
-    const { frontPhoto, sidePhoto, chest, waist, hips, height, shoulder, armLength, inseam, neck } = req.body;
+    const { frontPhoto, sidePhoto, chest, waist, hips, height, shoulder, armLength, inseam, neck } =
+      req.body;
 
-    if (!frontPhoto || !chest || !waist || !hips || !height || !shoulder || !armLength || !inseam || !neck) {
+    if (
+      !frontPhoto ||
+      !chest ||
+      !waist ||
+      !hips ||
+      !height ||
+      !shoulder ||
+      !armLength ||
+      !inseam ||
+      !neck
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: frontPhoto and all measurements',
