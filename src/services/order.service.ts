@@ -192,7 +192,6 @@ class OrderService {
     const existingOrder = await prisma.order.findUnique({
       where: { offerId: offer.id },
       include: {
-        payment: true,
         designer: {
           select: {
             id: true,
