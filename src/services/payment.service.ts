@@ -21,7 +21,6 @@ interface InterswitchCheckoutParams {
   cust_id: string;
   mode: string;
   site_redirect_url?: string;
-  scriptUrl: string;
 }
 
 interface InterswitchVerifyResponse {
@@ -161,7 +160,6 @@ export class PaymentService {
       cust_email: customer.email,
       cust_id: customer.id,
       mode: this.mode,
-      scriptUrl: this.inlineScriptUrl,
     };
   }
 
