@@ -115,6 +115,14 @@ class OfferService {
             category: true,
           },
         },
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -145,6 +153,14 @@ class OfferService {
             fullName: true,
             brandName: true,
             email: true,
+          },
+        },
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            createdAt: true,
           },
         },
         design: {
