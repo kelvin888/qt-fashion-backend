@@ -19,6 +19,7 @@ interface InterswitchCheckoutParams {
   cust_name: string;
   cust_email: string;
   cust_id: string;
+  designer_name: string;
   mode: string;
   site_redirect_url?: string;
 }
@@ -125,7 +126,7 @@ export class PaymentService {
 
     if (existingPayment) {
       // Return existing payment params
-      return this.prepareCheckoutParams(existingPayment, offer.customer);
+      return this.prepareCheckoutParams(existingPayment, offer.customer, offer.designer);
     }
 
     // Create new payment transaction
@@ -143,13 +144,13 @@ export class PaymentService {
       },
     });
 
-    return this.prepareCheckoutParams(paymentTransaction, offer.customer);
+    return this.prepareCheckoutParams(paymentTransaction, offer.customer, offer.designer);
   }
 
   /**
    * Prepare checkout parameters for Interswitch inline checkout
    */
-  private prepareCheckoutParams(payment: any, customer: any): InterswitchCheckoutParams {
+  private prepareCheckoutParams(payment: any, customer: any, designer: any): InterswitchCheckoutParams {
     return {
       merchant_code: this.merchantCode,
       pay_item_id: this.payItemId,
@@ -159,6 +160,7 @@ export class PaymentService {
       cust_name: customer.fullName || customer.email,
       cust_email: customer.email,
       cust_id: customer.id,
+      designer_name: designer.fullName || designer.businessName || 'Designer',
       mode: this.mode,
     };
   }
