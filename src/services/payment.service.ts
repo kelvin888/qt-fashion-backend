@@ -150,7 +150,11 @@ export class PaymentService {
   /**
    * Prepare checkout parameters for Interswitch inline checkout
    */
-  private prepareCheckoutParams(payment: any, customer: any, designer: any): InterswitchCheckoutParams {
+  private prepareCheckoutParams(
+    payment: any,
+    customer: any,
+    designer: any
+  ): InterswitchCheckoutParams {
     return {
       merchant_code: this.merchantCode,
       pay_item_id: this.payItemId,
