@@ -113,11 +113,13 @@ export class PaymentService {
       throw new Error('Invalid shipping address');
     }
 
-    // Check if there's an existing pending payment
+    // Check if there's an existing pending payment that hasn't been attempted yet
+    // We only reuse truly pending payments (retriesCount = 0) to avoid duplicate txnRef issues
     const existingPayment = await prisma.paymentTransaction.findFirst({
       where: {
         offerId,
         status: PaymentStatus.PENDING,
+        retriesCount: 0, // Only reuse if never attempted
         expiresAt: {
           gte: new Date(),
         },
@@ -128,6 +130,19 @@ export class PaymentService {
       // Return existing payment params
       return this.prepareCheckoutParams(existingPayment, offer.customer, offer.designer);
     }
+
+    // Mark any old failed/cancelled payments as expired to avoid confusion
+    await prisma.paymentTransaction.updateMany({
+      where: {
+        offerId,
+        status: {
+          in: [PaymentStatus.FAILED, PaymentStatus.CANCELLED],
+        },
+      },
+      data: {
+        status: PaymentStatus.EXPIRED,
+      },
+    });
 
     // Create new payment transaction
     const txnRef = this.generateTxnRef();
