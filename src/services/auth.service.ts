@@ -11,6 +11,13 @@ export interface SignupData {
   fullName: string;
   phoneNumber?: string;
   role: 'customer' | 'designer';
+  // Designer-specific fields
+  brandName?: string;
+  brandLogo?: string;
+  brandBanner?: string;
+  bio?: string;
+  yearsOfExperience?: string;
+  specialties?: string[];
 }
 
 export interface LoginData {
@@ -28,6 +35,8 @@ export interface AuthResponse {
     profileImage: string | null;
     brandName: string | null;
     brandLogo: string | null;
+    brandBanner: string | null;
+    bio: string | null;
   };
   token: string;
   expiresIn: number;
@@ -50,15 +59,33 @@ class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    // Prepare user data
+    const userData: any = {
+      email: normalizedEmail,
+      password: hashedPassword,
+      fullName: data.fullName,
+      phoneNumber: data.phoneNumber,
+      role: data.role.toUpperCase() === 'DESIGNER' ? UserRole.DESIGNER : UserRole.CUSTOMER,
+    };
+
+    // Add designer-specific fields if role is designer
+    if (data.role.toUpperCase() === 'DESIGNER') {
+      userData.brandName = data.brandName;
+      userData.brandLogo = data.brandLogo;
+      userData.brandBanner = data.brandBanner;
+      userData.bio = data.bio;
+      // Store yearsOfExperience and specialties in bio or as separate fields
+      if (data.yearsOfExperience) {
+        userData.bio = `${userData.bio || ''}\n\nExperience: ${data.yearsOfExperience} years`;
+      }
+      if (data.specialties && data.specialties.length > 0) {
+        userData.bio = `${userData.bio || ''}\n\nSpecialties: ${data.specialties.join(', ')}`;
+      }
+    }
+
     // Create user
     const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        password: hashedPassword,
-        fullName: data.fullName,
-        phoneNumber: data.phoneNumber,
-        role: data.role.toUpperCase() === 'DESIGNER' ? UserRole.DESIGNER : UserRole.CUSTOMER,
-      },
+      data: userData,
     });
 
     // Generate token
@@ -78,6 +105,8 @@ class AuthService {
         profileImage: user.profileImage,
         brandName: user.brandName,
         brandLogo: user.brandLogo,
+        brandBanner: user.brandBanner,
+        bio: user.bio,
       },
       token,
       expiresIn: 604800, // 7 days in seconds
@@ -121,6 +150,8 @@ class AuthService {
         profileImage: user.profileImage,
         brandName: user.brandName,
         brandLogo: user.brandLogo,
+        brandBanner: user.brandBanner,
+        bio: user.bio,
       },
       token,
       expiresIn: 604800,

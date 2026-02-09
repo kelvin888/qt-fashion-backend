@@ -4,7 +4,20 @@ import { isValidEmail } from '../utils/validation';
 
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password, fullName, phoneNumber, role } = req.body;
+    const {
+      email,
+      password,
+      fullName,
+      phoneNumber,
+      role,
+      // Designer-specific fields
+      brandName,
+      brandLogo,
+      brandBanner,
+      bio,
+      yearsOfExperience,
+      specialties,
+    } = req.body;
 
     // Validation
     if (!email || !password || !fullName || !role) {
@@ -26,12 +39,32 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
       });
     }
 
+    // Validate designer-specific required fields
+    if (role.toUpperCase() === 'DESIGNER') {
+      if (!brandName || !brandName.trim()) {
+        return res.status(400).json({
+          message: 'Brand name is required for designers',
+        });
+      }
+      if (!bio || !bio.trim()) {
+        return res.status(400).json({
+          message: 'Bio is required for designers',
+        });
+      }
+    }
+
     const result = await authService.signup({
       email,
       password,
       fullName,
       phoneNumber,
       role,
+      brandName,
+      brandLogo,
+      brandBanner,
+      bio,
+      yearsOfExperience,
+      specialties,
     });
 
     res.status(201).json(result);
