@@ -123,7 +123,7 @@ class UserService {
     captureMethod?: 'PHOTO' | 'MANUAL';
   }) {
     const captureMethod = data.captureMethod || 'PHOTO';
-    
+
     // Find and delete existing measurements for this user
     const existingMeasurements = await prisma.bodyMeasurement.findMany({
       where: { userId: data.userId },
@@ -164,10 +164,13 @@ class UserService {
     }
 
     // Prepare AI metadata (only for photo captures)
-    const aiMetadata = captureMethod === 'PHOTO' ? {
-      processingTime: '2.3s',
-      model: 'mock-ai-v1',
-    } : null;
+    const aiMetadata =
+      captureMethod === 'PHOTO'
+        ? {
+            processingTime: '2.3s',
+            model: 'mock-ai-v1',
+          }
+        : null;
 
     const aiConfidenceScore = captureMethod === 'PHOTO' ? 0.85 + Math.random() * 0.1 : null;
 
@@ -188,8 +191,6 @@ class UserService {
         captureMethod: captureMethod,
         aiConfidenceScore,
         aiMetadata,
-          timestamp: new Date().toISOString(),
-        },
         isActive: true,
       },
     });
