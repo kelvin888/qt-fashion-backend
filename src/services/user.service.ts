@@ -106,11 +106,11 @@ class UserService {
   }
 
   /**
-   * Create body measurement
+   * Create body measurement with optional photo capture
    */
   async createBodyMeasurement(data: {
     userId: string;
-    frontPhoto: string;
+    frontPhoto?: string;
     sidePhoto?: string;
     chest: number;
     waist: number;
@@ -120,14 +120,17 @@ class UserService {
     armLength: number;
     inseam: number;
     neck: number;
+    captureMethod?: 'PHOTO' | 'MANUAL';
   }) {
+    const captureMethod = data.captureMethod || 'PHOTO';
+    
     // Find and delete existing measurements for this user
     const existingMeasurements = await prisma.bodyMeasurement.findMany({
       where: { userId: data.userId },
       select: { id: true, frontPhoto: true, sidePhoto: true },
     });
 
-    // Delete old Cloudinary photos
+    // Delete old Cloudinary photos (only if they exist)
     if (existingMeasurements.length > 0) {
       console.log(`🗑️  Deleting ${existingMeasurements.length} old measurements and photos`);
 
@@ -160,12 +163,20 @@ class UserService {
       });
     }
 
+    // Prepare AI metadata (only for photo captures)
+    const aiMetadata = captureMethod === 'PHOTO' ? {
+      processingTime: '2.3s',
+      model: 'mock-ai-v1',
+    } : null;
+
+    const aiConfidenceScore = captureMethod === 'PHOTO' ? 0.85 + Math.random() * 0.1 : null;
+
     // Create new measurement record
     const measurement = await prisma.bodyMeasurement.create({
       data: {
         userId: data.userId,
-        frontPhoto: data.frontPhoto,
-        sidePhoto: data.sidePhoto,
+        frontPhoto: data.frontPhoto || null,
+        sidePhoto: data.sidePhoto || null,
         chest: data.chest,
         waist: data.waist,
         hips: data.hips,
@@ -174,10 +185,9 @@ class UserService {
         armLength: data.armLength,
         inseam: data.inseam,
         neck: data.neck,
-        aiConfidenceScore: 0.85 + Math.random() * 0.1,
-        aiMetadata: {
-          processingTime: '2.3s',
-          model: 'mock-ai-v1',
+        captureMethod: captureMethod,
+        aiConfidenceScore,
+        aiMetadata,
           timestamp: new Date().toISOString(),
         },
         isActive: true,

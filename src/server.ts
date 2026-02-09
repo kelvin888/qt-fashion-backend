@@ -13,6 +13,7 @@ import tryOnRoutes from './routes/tryOn.routes';
 import uploadRoutes from './routes/upload.routes';
 import paymentRoutes from './routes/payment.routes';
 import addressRoutes from './routes/address.routes';
+import customRequestRoutes from './routes/customRequest.routes';
 
 // Load environment variables
 dotenv.config();
@@ -55,6 +56,7 @@ app.use('/api/try-on', tryOnRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/addresses', addressRoutes);
+app.use('/api/custom-requests', customRequestRoutes);
 
 // 404 handler
 app.use((req, res) => {

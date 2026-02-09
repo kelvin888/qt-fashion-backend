@@ -47,6 +47,26 @@ enum PaymentStatus {
   EXPIRED       // Payment link expired (30 minutes)
 }
 
+enum CustomRequestStatus {
+  OPEN          // Open for bids
+  CLOSED        // No longer accepting bids
+  IN_PROGRESS   // Customer selected a bid, order being fulfilled
+  COMPLETED     // Order completed
+  CANCELLED     // Request cancelled
+}
+
+enum BidStatus {
+  PENDING       // Bid submitted, awaiting customer review
+  ACCEPTED      // Customer accepted this bid
+  REJECTED      // Customer rejected this bid
+  WITHDRAWN     // Designer withdrew their bid
+}
+
+enum MeasurementCaptureMethod {
+  PHOTO         // Captured via camera with photos
+  MANUAL        // Manually entered by user
+}
+
 // Note: Category is now a String field (not enum) to allow dynamic categories
 // without requiring database migrations. Frontend can add new categories anytime.
 
@@ -81,6 +101,10 @@ model User {
   measurements  BodyMeasurement[]  @relation("UserMeasurements")
   walletTransactions WalletTransaction[] @relation("UserWalletTransactions")
   addresses     Address[]  @relation("UserAddresses")
+  
+  // Custom Requests relations
+  customRequests       CustomRequest[]     @relation("CustomerRequests")
+  customRequestBids    CustomRequestBid[]  @relation("DesignerBids")
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -247,11 +271,14 @@ model BodyMeasurement {
   inseam              Float
   neck                Float
   
-  // Photos
-  frontPhoto          String
+  // Capture method
+  captureMethod       MeasurementCaptureMethod @default(PHOTO)
+  
+  // Photos (nullable for manual entry)
+  frontPhoto          String?
   sidePhoto           String?
   
-  // AI metadata
+  // AI metadata (only for photo captures)
   aiConfidenceScore   Float?
   aiMetadata          Json?
   
@@ -347,4 +374,82 @@ model PaymentTransaction {
   @@index([txnRef])
   @@index([status])
   @@index([expiresAt])
+}
+
+// Custom Design Requests (Reverse Marketplace)
+model CustomRequest {
+  id                  String                @id @default(cuid())
+  
+  // Customer who posted the request
+  customerId          String
+  customer            User                  @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Request details
+  title               String
+  description         String
+  category            String                // e.g., "WEDDING", "BUSINESS", "CASUAL"
+  referenceImages     String[]              // Array of image URLs
+  budget              Float?                // Optional budget range
+  deadline            DateTime?             // Optional completion deadline
+  
+  // Requirements
+  requirements        Json?                 // Additional requirements as JSON
+  
+  // Customer measurements (mandatory)
+  measurements        Json                  // Required measurements for designers
+  
+  // Status
+  status              CustomRequestStatus   @default(OPEN)
+  
+  // Selected bid (when status becomes IN_PROGRESS)
+  selectedBidId       String?               @unique
+  selectedBid         CustomRequestBid?     @relation("SelectedBid", fields: [selectedBidId], references: [id])
+  
+  // Relations
+  bids                CustomRequestBid[]    @relation("RequestBids")
+  
+  // Timestamps
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  closedAt            DateTime?             // When request was closed
+
+  @@map("custom_requests")
+  @@index([customerId])
+  @@index([status])
+  @@index([category])
+}
+
+// Bids on custom requests
+model CustomRequestBid {
+  id                  String            @id @default(cuid())
+  
+  // Request being bid on
+  requestId           String
+  request             CustomRequest     @relation("RequestBids", fields: [requestId], references: [id], onDelete: Cascade)
+  
+  // Designer making the bid
+  designerId          String
+  designer            User              @relation("DesignerBids", fields: [designerId], references: [id], onDelete: Cascade)
+  
+  // Bid details
+  price               Float             // Quoted price
+  timeline            String            // e.g., "2 weeks", "5-7 days"
+  pitch               String            // Designer's proposal/pitch
+  portfolioImages     String[]          // Array of portfolio image URLs
+  
+  // Status
+  status              BidStatus         @default(PENDING)
+  
+  // If accepted, this bid becomes the selected bid
+  selectedRequest     CustomRequest?    @relation("SelectedBid")
+  
+  // Timestamps
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("custom_request_bids")
+  @@index([requestId])
+  @@index([designerId])
+  @@index([status])
+  @@unique([requestId, designerId])  // One bid per designer per request
 }

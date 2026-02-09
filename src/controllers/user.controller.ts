@@ -58,27 +58,37 @@ export const getActiveMeasurement = async (req: Request, res: Response, next: Ne
 export const createBodyMeasurement = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id; // From auth middleware
-    const { frontPhoto, sidePhoto, chest, waist, hips, height, shoulder, armLength, inseam, neck } =
-      req.body;
+    const {
+      frontPhoto,
+      sidePhoto,
+      chest,
+      waist,
+      hips,
+      height,
+      shoulder,
+      armLength,
+      inseam,
+      neck,
+      captureMethod = 'PHOTO', // Default to PHOTO if not specified
+    } = req.body;
 
-    if (
-      !frontPhoto ||
-      !chest ||
-      !waist ||
-      !hips ||
-      !height ||
-      !shoulder ||
-      !armLength ||
-      !inseam ||
-      !neck
-    ) {
+    // Validate required measurement fields
+    if (!chest || !waist || !hips || !height || !shoulder || !armLength || !inseam || !neck) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: frontPhoto and all measurements',
+        message: 'Missing required measurement fields',
       });
     }
 
-    console.log('📏 Creating body measurement for user:', userId);
+    // Validate photo requirement based on capture method
+    if (captureMethod === 'PHOTO' && !frontPhoto) {
+      return res.status(400).json({
+        success: false,
+        message: 'frontPhoto is required for photo capture method',
+      });
+    }
+
+    console.log('📏 Creating body measurement for user:', userId, 'Method:', captureMethod);
     const measurement = await userService.createBodyMeasurement({
       userId,
       frontPhoto,
@@ -91,6 +101,7 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
       armLength,
       inseam,
       neck,
+      captureMethod,
     });
 
     console.log('✅ Body measurement created:', measurement.id);
