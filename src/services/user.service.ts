@@ -210,6 +210,48 @@ class UserService {
       return null;
     }
   }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(userId: string, updateData: any) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Build update object with only allowed fields
+    const allowedFields = ['profileImage', 'brandName', 'brandLogo', 'brandBanner', 'bio'];
+    const dataToUpdate: any = {};
+
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        dataToUpdate[field] = updateData[field];
+      }
+    });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: dataToUpdate,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        profileImage: true,
+        brandName: true,
+        brandLogo: true,
+        brandBanner: true,
+        bio: true,
+      },
+    });
+
+    return updatedUser;
+  }
 }
 
 export default new UserService();

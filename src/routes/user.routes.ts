@@ -6,6 +6,7 @@ import {
   getMyMeasurements,
   getActiveMeasurement,
   createBodyMeasurement,
+  updateProfile,
 } from '../controllers/user.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -13,6 +14,9 @@ const router = Router();
 
 // Authenticated user's own measurements (no ID needed) - MUST be before /:id routes
 router.get('/measurements', authenticate, getMyMeasurements);
+
+// Update authenticated user's profile
+router.put('/profile', authenticate, updateProfile);
 
 // Public routes - anyone can view user profiles
 router.get('/:id', getUserById);

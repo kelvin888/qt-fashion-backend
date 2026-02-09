@@ -126,3 +126,20 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
     next(error);
   }
 };
+
+export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.userId;
+    const updateData = req.body;
+
+    const updatedUser = await userService.updateProfile(userId, updateData);
+
+    res.status(200).json({
+      success: true,
+      data: updatedUser,
+    });
+  } catch (error: any) {
+    console.error('❌ Error updating profile:', error);
+    next(error);
+  }
+};
