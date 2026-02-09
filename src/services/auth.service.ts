@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { PrismaClient, UserRole } from '@prisma/client';
 import { generateToken } from '../utils/jwt';
+import { validateAndNormalizeEmail } from '../utils/validation';
 
 const prisma = new PrismaClient();
 
@@ -34,9 +35,12 @@ export interface AuthResponse {
 
 class AuthService {
   async signup(data: SignupData): Promise<AuthResponse> {
+    // Normalize email
+    const normalizedEmail = validateAndNormalizeEmail(data.email);
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -49,7 +53,7 @@ class AuthService {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email: data.email,
+        email: normalizedEmail,
         password: hashedPassword,
         fullName: data.fullName,
         phoneNumber: data.phoneNumber,
@@ -81,9 +85,12 @@ class AuthService {
   }
 
   async login(data: LoginData): Promise<AuthResponse> {
+    // Normalize email
+    const normalizedEmail = validateAndNormalizeEmail(data.email);
+
     // Find user
     const user = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {

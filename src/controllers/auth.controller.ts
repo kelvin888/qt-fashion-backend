@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import authService from '../services/auth.service';
+import { isValidEmail } from '../utils/validation';
 
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -9,6 +10,13 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
     if (!email || !password || !fullName || !role) {
       return res.status(400).json({
         message: 'Missing required fields: email, password, fullName, role',
+      });
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        message: 'Invalid email address format',
       });
     }
 
@@ -40,6 +48,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     if (!email || !password) {
       return res.status(400).json({
         message: 'Missing required fields: email, password',
+      });
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        message: 'Invalid email address format',
       });
     }
 
