@@ -227,7 +227,7 @@ class UserService {
     const allowedFields = ['profileImage', 'brandName', 'brandLogo', 'brandBanner', 'bio'];
     const dataToUpdate: any = {};
 
-    allowedFields.forEach(field => {
+    allowedFields.forEach((field) => {
       if (updateData[field] !== undefined) {
         dataToUpdate[field] = updateData[field];
       }
