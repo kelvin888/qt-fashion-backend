@@ -11,12 +11,12 @@ import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
+// Authenticated user's own measurements (no ID needed) - MUST be before /:id routes
+router.get('/measurements', authenticate, getMyMeasurements);
+
 // Public routes - anyone can view user profiles
 router.get('/:id', getUserById);
 router.get('/:id/designer-profile', getDesignerProfile);
-
-// Authenticated user's own measurements (no ID needed)
-router.get('/measurements', authenticate, getMyMeasurements);
 
 /**
  * @swagger
