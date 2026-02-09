@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
 
 const prisma = new PrismaClient();
@@ -170,7 +170,7 @@ class UserService {
             processingTime: '2.3s',
             model: 'mock-ai-v1',
           }
-        : null;
+        : Prisma.JsonNull;
 
     const aiConfidenceScore = captureMethod === 'PHOTO' ? 0.85 + Math.random() * 0.1 : null;
 
