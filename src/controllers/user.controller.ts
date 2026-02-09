@@ -40,6 +40,18 @@ export const getUserMeasurements = async (req: Request, res: Response, next: Nex
   }
 };
 
+export const getMyMeasurements = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.id;
+
+    const measurements = await userService.getUserMeasurements(userId);
+
+    res.status(200).json(measurements);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 export const getActiveMeasurement = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;

@@ -3,6 +3,7 @@ import {
   getUserById,
   getDesignerProfile,
   getUserMeasurements,
+  getMyMeasurements,
   getActiveMeasurement,
   createBodyMeasurement,
 } from '../controllers/user.controller';
@@ -13,6 +14,9 @@ const router = Router();
 // Public routes - anyone can view user profiles
 router.get('/:id', getUserById);
 router.get('/:id/designer-profile', getDesignerProfile);
+
+// Authenticated user's own measurements (no ID needed)
+router.get('/measurements', authenticate, getMyMeasurements);
 
 /**
  * @swagger
