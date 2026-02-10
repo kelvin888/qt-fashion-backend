@@ -311,6 +311,23 @@ class OrderService {
       data: { orderId: order.id },
     });
 
+    // If this offer originated from a custom request, close the request now that
+    // the payment has been verified and the order exists.
+    const customRequestIdMatch = (offer.notes || '').match(/CUSTOM_REQUEST_ID:([A-Za-z0-9_-]+)/);
+    const customRequestId = customRequestIdMatch?.[1];
+    if (customRequestId) {
+      await prisma.customRequest.updateMany({
+        where: {
+          id: customRequestId,
+          customerId: offer.customerId,
+        },
+        data: {
+          status: 'CLOSED' as any,
+          closedAt: new Date(),
+        },
+      });
+    }
+
     return order;
   }
 

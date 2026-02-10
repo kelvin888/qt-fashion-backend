@@ -87,6 +87,7 @@ export class PayoutService {
   private walletPin: string;
   private merchantCode: string;
   private apiBaseUrl: string;
+  private terminalId: string;
   private payoutFee: number;
   private minWithdrawalAmount: number;
   private accessToken: string | null = null;
@@ -99,6 +100,7 @@ export class PayoutService {
     this.walletPin = process.env.INTERSWITCH_WALLET_PIN || '';
     this.merchantCode = process.env.INTERSWITCH_MERCHANT_CODE || 'MX51309';
     this.apiBaseUrl = process.env.INTERSWITCH_API_BASE_URL || 'https://qa.interswitchng.com';
+    this.terminalId = process.env.INTERSWITCH_TERMINAL_ID || process.env.TERMINAL_ID || '';
     this.payoutFee = parseFloat(process.env.INTERSWITCH_PAYOUT_FEE || '10');
     this.minWithdrawalAmount = parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT || '1000');
   }
@@ -158,6 +160,54 @@ export class PayoutService {
     amount: number = 100
   ): Promise<{ accountName: string }> {
     try {
+      // Preferred: Quickteller Account Name Inquiry (QA)
+      // curl --request POST \
+      //  --url https://qa.interswitchng.com/quicktellerservice/api/v5/Transactions/DoAccountNameInquiry \
+      //  --header 'Content-Type: application/json' \
+      //  --header 'TerminalID: TERMINAL_ID' \
+      //  --header 'accept: application/json' \
+      //  --header 'accountid: 0730804844' \
+      //  --header 'bankcode: 044'
+      if (this.terminalId) {
+        const response = await axios.post(
+          `${this.apiBaseUrl}/quicktellerservice/api/v5/Transactions/DoAccountNameInquiry`,
+          {},
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              accept: 'application/json',
+              TerminalID: this.terminalId,
+              accountid: accountNumber,
+              bankcode: bankCode,
+            },
+            timeout: 15000,
+          }
+        );
+
+        const data: any = response.data;
+        const accountName: string | undefined =
+          data?.accountName ||
+          data?.account_name ||
+          data?.accountname ||
+          data?.customerName ||
+          data?.name ||
+          data?.data?.accountName ||
+          data?.response?.accountName ||
+          data?.accountNameInquiryResponse?.accountName;
+
+        if (typeof accountName === 'string' && accountName.trim().length > 0) {
+          return { accountName: accountName.trim() };
+        }
+
+        const message =
+          data?.responseMessage ||
+          data?.message ||
+          data?.responseDescription ||
+          'Failed to verify bank account';
+        throw new Error(message);
+      }
+
+      // Fallback: existing payout customer-lookup (requires OAuth token)
       const token = await this.getAccessToken();
       const transactionRef = this.generateTransactionRef();
 
@@ -180,6 +230,7 @@ export class PayoutService {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
+          timeout: 15000,
         }
       );
 

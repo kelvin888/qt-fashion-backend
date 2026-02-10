@@ -87,6 +87,7 @@ export const createCustomRequest = async (req: Request, res: Response) => {
  */
 export const getAllCustomRequests = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.id;
     const { status, category, page = '1', limit = '20' } = req.query;
 
     const pageNum = parseInt(page as string);
@@ -106,6 +107,19 @@ export const getAllCustomRequests = async (req: Request, res: Response) => {
               id: true,
               fullName: true,
               profileImage: true,
+            },
+          },
+          bids: {
+            where: {
+              OR: [
+                { status: 'ACCEPTED' },
+                ...(userId ? [{ designerId: userId }] : []),
+              ],
+            },
+            select: {
+              id: true,
+              status: true,
+              designerId: true,
             },
           },
           _count: {
@@ -459,10 +473,77 @@ export const acceptBid = async (req: Request, res: Response) => {
         },
       });
 
-      return { acceptedBid, updatedRequest };
+      // Create an internal "custom design" + accepted offer so the customer can pay
+      // using the existing Offer -> Payment -> Order pipeline.
+      const defaultProductionSteps = [
+        { id: 'step-1', title: 'Confirm measurements', estimatedTime: '1 day', description: '' },
+        { id: 'step-2', title: 'Sourcing materials', estimatedTime: '2 days', description: '' },
+        { id: 'step-3', title: 'Cutting & preparation', estimatedTime: '1-2 days', description: '' },
+        { id: 'step-4', title: 'Sewing & assembly', estimatedTime: '3-5 days', description: '' },
+        { id: 'step-5', title: 'Finishing & quality check', estimatedTime: '1-2 days', description: '' },
+        { id: 'step-6', title: 'Packaging & delivery prep', estimatedTime: '1 day', description: '' },
+      ];
+
+      const customDesign = await tx.design.create({
+        data: {
+          designerId: acceptedBid.designerId,
+          title: `Custom Order: ${customRequest.title}`,
+          description: customRequest.description,
+          price: acceptedBid.price,
+          images: customRequest.referenceImages || [],
+          category: customRequest.category,
+          colors: [],
+          sizes: [],
+          customizable: true,
+          productionSteps: defaultProductionSteps as any,
+        },
+      });
+
+      const offerNotes = `CUSTOM_REQUEST_ID:${customRequest.id}\n${customRequest.description}`;
+
+      const offer = await tx.offer.create({
+        data: {
+          customerId: customRequest.customerId,
+          designerId: acceptedBid.designerId,
+          designId: customDesign.id,
+          status: 'ACCEPTED',
+          customerPrice: acceptedBid.price,
+          finalPrice: acceptedBid.price,
+          measurements: customRequest.measurements as any,
+          notes: offerNotes,
+          designerNotes: acceptedBid.pitch,
+          acceptedAt: new Date(),
+        },
+        include: {
+          design: {
+            select: {
+              id: true,
+              title: true,
+              images: true,
+              category: true,
+            },
+          },
+          designer: {
+            select: {
+              id: true,
+              fullName: true,
+              brandName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      return { acceptedBid, updatedRequest, offer };
     });
 
-    res.json(result);
+    // Backwards-compatible response shape: keep top-level fields and also provide
+    // a stable wrapper for newer clients.
+    res.json({
+      success: true,
+      data: result,
+      ...result,
+    });
   } catch (error: any) {
     console.error('Error accepting bid:', error);
     res.status(500).json({ error: 'Failed to accept bid' });
