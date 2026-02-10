@@ -5,6 +5,11 @@ import { PayoutService } from '../services/payout.service';
 const prisma = new PrismaClient();
 const payoutService = new PayoutService();
 
+function getAuthenticatedUserId(req: Request): string | null {
+  const userId = (req as any).userId ?? (req as any).user?.id ?? (req as any).user?.userId;
+  return typeof userId === 'string' && userId.length > 0 ? userId : null;
+}
+
 /**
  * POST /api/payouts/lookup
  * Validate bank account and get account name
@@ -46,7 +51,10 @@ export async function lookupBankAccount(req: Request, res: Response) {
  */
 export async function setupBankAccount(req: Request, res: Response) {
   try {
-    const userId = (req as any).userId;
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { accountNumber, accountName, bankName, bankCode } = req.body;
 
     if (!accountNumber || !accountName || !bankName || !bankCode) {
@@ -118,7 +126,10 @@ export async function setupBankAccount(req: Request, res: Response) {
  */
 export async function getBankDetails(req: Request, res: Response) {
   try {
-    const userId = (req as any).userId;
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -153,7 +164,10 @@ export async function getBankDetails(req: Request, res: Response) {
  */
 export async function requestWithdrawal(req: Request, res: Response) {
   try {
-    const userId = (req as any).userId;
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { amount } = req.body;
 
     if (!amount || typeof amount !== 'number' || amount <= 0) {
@@ -206,7 +220,10 @@ export async function requestWithdrawal(req: Request, res: Response) {
  */
 export async function getPayoutHistory(req: Request, res: Response) {
   try {
-    const userId = (req as any).userId;
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -230,7 +247,10 @@ export async function getPayoutHistory(req: Request, res: Response) {
  */
 export async function getPayoutDetails(req: Request, res: Response) {
   try {
-    const userId = (req as any).userId;
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { id } = req.params;
 
     const payout = await payoutService.getPayoutById(id, userId);
@@ -253,7 +273,10 @@ export async function getPayoutDetails(req: Request, res: Response) {
  */
 export async function checkPayoutStatus(req: Request, res: Response) {
   try {
-    const userId = (req as any).userId;
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { transactionReference } = req.params;
 
     // Verify the payout belongs to this user
