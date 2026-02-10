@@ -111,10 +111,7 @@ export const getAllCustomRequests = async (req: Request, res: Response) => {
           },
           bids: {
             where: {
-              OR: [
-                { status: 'ACCEPTED' },
-                ...(userId ? [{ designerId: userId }] : []),
-              ],
+              OR: [{ status: 'ACCEPTED' }, ...(userId ? [{ designerId: userId }] : [])],
             },
             select: {
               id: true,
@@ -478,10 +475,25 @@ export const acceptBid = async (req: Request, res: Response) => {
       const defaultProductionSteps = [
         { id: 'step-1', title: 'Confirm measurements', estimatedTime: '1 day', description: '' },
         { id: 'step-2', title: 'Sourcing materials', estimatedTime: '2 days', description: '' },
-        { id: 'step-3', title: 'Cutting & preparation', estimatedTime: '1-2 days', description: '' },
+        {
+          id: 'step-3',
+          title: 'Cutting & preparation',
+          estimatedTime: '1-2 days',
+          description: '',
+        },
         { id: 'step-4', title: 'Sewing & assembly', estimatedTime: '3-5 days', description: '' },
-        { id: 'step-5', title: 'Finishing & quality check', estimatedTime: '1-2 days', description: '' },
-        { id: 'step-6', title: 'Packaging & delivery prep', estimatedTime: '1 day', description: '' },
+        {
+          id: 'step-5',
+          title: 'Finishing & quality check',
+          estimatedTime: '1-2 days',
+          description: '',
+        },
+        {
+          id: 'step-6',
+          title: 'Packaging & delivery prep',
+          estimatedTime: '1 day',
+          description: '',
+        },
       ];
 
       const customDesign = await tx.design.create({
