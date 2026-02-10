@@ -15,7 +15,55 @@ const router = Router();
 // Authenticated user's own measurements (no ID needed) - MUST be before /:id routes
 router.get('/measurements', authenticate, getMyMeasurements);
 
-// Update authenticated user's profile
+/**
+ * @swagger
+ * /api/users/profile:
+ *   put:
+ *     tags:
+ *       - Users
+ *     summary: Update authenticated user's profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               brandName:
+ *                 type: string
+ *                 description: For designers only
+ *               brandLogo:
+ *                 type: string
+ *                 description: URL of brand logo
+ *               brandBanner:
+ *                 type: string
+ *                 description: URL of brand banner
+ *               bio:
+ *                 type: string
+ *                 description: User/designer biography
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
 router.put('/profile', authenticate, updateProfile);
 
 // Public routes - anyone can view user profiles
