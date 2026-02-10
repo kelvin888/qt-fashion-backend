@@ -129,9 +129,10 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
 
 export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.id;
     const updateData = req.body;
 
+    console.log('📝 Updating profile for user:', userId);
     const updatedUser = await userService.updateProfile(userId, updateData);
 
     res.status(200).json({
