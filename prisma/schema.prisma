@@ -92,8 +92,16 @@ model User {
   // Wallet for designers
   walletBalance Float    @default(0)
   
+  // Bank account details for payouts
+  accountNumber    String?
+  accountName      String?
+  bankName         String?
+  bankCode         String?
+  accountVerified  Boolean  @default(false)
+  
   // Relations
   designs       Design[]
+  payouts       Payout[]  @relation("UserPayouts")
   offersAsCustomer  Offer[]  @relation("CustomerOffers")
   offersAsDesigner  Offer[]  @relation("DesignerOffers")
   ordersAsCustomer  Order[]  @relation("CustomerOrders")
@@ -310,6 +318,50 @@ model WalletTransaction {
   @@map("wallet_transactions")
   @@index([userId])
   @@index([orderId])
+}
+
+// Payout/withdrawal tracking
+model Payout {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation("UserPayouts", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Amount details
+  amount                Float     // Amount requested by designer
+  fee                   Float     // Interswitch processing fee
+  netAmount             Float     // Amount - fee (what designer receives)
+  
+  // Status tracking
+  status                String    // PENDING, PROCESSING, SUCCESSFUL, FAILED
+  channel               String    @default("BANK_TRANSFER")
+  
+  // Recipient details
+  recipientBank         String
+  recipientAccount      String
+  recipientName         String
+  
+  // Transaction references
+  transactionReference  String    @unique  // Our internal reference
+  interswitchReference  String?            // Interswitch transaction reference
+  processingReference   String?            // Interswitch processing reference
+  
+  // Response details
+  responseCode          String?
+  responseMessage       String?
+  narration             String?
+  
+  // Retry tracking
+  retryCount            Int       @default(0)
+  
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  completedAt           DateTime?
+  
+  @@map("payouts")
+  @@index([userId])
+  @@index([status])
+  @@index([transactionReference])
 }
 
 // Shipping addresses for customers

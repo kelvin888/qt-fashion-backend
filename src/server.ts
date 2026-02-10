@@ -14,6 +14,7 @@ import uploadRoutes from './routes/upload.routes';
 import paymentRoutes from './routes/payment.routes';
 import addressRoutes from './routes/address.routes';
 import customRequestRoutes from './routes/customRequest.routes';
+import payoutRoutes from './routes/payout.routes';
 
 // Load environment variables
 dotenv.config();
@@ -57,6 +58,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/custom-requests', customRequestRoutes);
+app.use('/api/payouts', payoutRoutes);
 
 // 404 handler
 app.use((req, res) => {
