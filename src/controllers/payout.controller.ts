@@ -16,9 +16,20 @@ function getAuthenticatedUserId(req: Request): string | null {
  */
 export async function lookupBankAccount(req: Request, res: Response) {
   try {
+    console.log('🔍 [CONTROLLER] Bank account lookup request received');
+    console.log('🔍 [CONTROLLER] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🔍 [CONTROLLER] Request headers:', {
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent'],
+    });
+
     const { bankCode, accountNumber } = req.body;
 
     if (!bankCode || !accountNumber) {
+      console.error('❌ [CONTROLLER] Missing required fields:', {
+        bankCode: !!bankCode,
+        accountNumber: !!accountNumber,
+      });
       return res.status(400).json({
         error: 'Bank code and account number are required',
       });
@@ -26,19 +37,23 @@ export async function lookupBankAccount(req: Request, res: Response) {
 
     // Validate account number format (10 digits for Nigerian banks)
     if (!/^\d{10}$/.test(accountNumber)) {
+      console.error('❌ [CONTROLLER] Invalid account number format:', accountNumber);
       return res.status(400).json({
         error: 'Account number must be 10 digits',
       });
     }
 
+    console.log('🔍 [CONTROLLER] Calling payoutService.lookupBankAccount...');
     const result = await payoutService.lookupBankAccount(bankCode, accountNumber);
+    console.log('✅ [CONTROLLER] Successfully retrieved account name:', result.accountName);
 
     res.json({
       success: true,
       accountName: result.accountName,
     });
   } catch (error: any) {
-    console.error('Bank lookup error:', error);
+    console.error('❌ [CONTROLLER] Bank lookup error:', error.message);
+    console.error('❌ [CONTROLLER] Full error:', error);
     res.status(400).json({
       error: error.message || 'Failed to verify bank account',
     });

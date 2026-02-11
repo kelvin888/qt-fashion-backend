@@ -159,6 +159,15 @@ export class PayoutService {
     accountNumber: string,
     amount: number = 100
   ): Promise<{ accountName: string }> {
+    console.log('🔍 [NAME ENQUIRY] Starting bank account lookup');
+    console.log('🔍 [NAME ENQUIRY] Input params:', {
+      bankCode,
+      accountNumber,
+      amount,
+      hasTerminalId: !!this.terminalId,
+      apiBaseUrl: this.apiBaseUrl,
+    });
+
     try {
       // Preferred: Quickteller Account Name Inquiry (QA)
       // curl --request POST \
@@ -169,6 +178,15 @@ export class PayoutService {
       //  --header 'accountid: 0730804844' \
       //  --header 'bankcode: 044'
       if (this.terminalId) {
+        console.log('🔍 [NAME ENQUIRY] Using Quickteller DoAccountNameInquiry endpoint');
+        console.log('🔍 [NAME ENQUIRY] Request headers:', {
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+          TerminalID: this.terminalId,
+          accountid: accountNumber,
+          bankcode: bankCode,
+        });
+
         const response = await axios.post(
           `${this.apiBaseUrl}/quicktellerservice/api/v5/Transactions/DoAccountNameInquiry`,
           {},
@@ -184,7 +202,25 @@ export class PayoutService {
           }
         );
 
+        console.log('🔍 [NAME ENQUIRY] Response status:', response.status);
+        console.log('🔍 [NAME ENQUIRY] Response headers:', response.headers);
+        console.log('🔍 [NAME ENQUIRY] Raw response data:', JSON.stringify(response.data, null, 2));
+
         const data: any = response.data;
+
+        console.log('🔍 [NAME ENQUIRY] Checking for accountName in various fields...');
+        console.log('🔍 [NAME ENQUIRY] data.accountName:', data?.accountName);
+        console.log('🔍 [NAME ENQUIRY] data.account_name:', data?.account_name);
+        console.log('🔍 [NAME ENQUIRY] data.accountname:', data?.accountname);
+        console.log('🔍 [NAME ENQUIRY] data.customerName:', data?.customerName);
+        console.log('🔍 [NAME ENQUIRY] data.name:', data?.name);
+        console.log('🔍 [NAME ENQUIRY] data.data?.accountName:', data?.data?.accountName);
+        console.log('🔍 [NAME ENQUIRY] data.response?.accountName:', data?.response?.accountName);
+        console.log(
+          '🔍 [NAME ENQUIRY] data.accountNameInquiryResponse?.accountName:',
+          data?.accountNameInquiryResponse?.accountName
+        );
+
         const accountName: string | undefined =
           data?.accountName ||
           data?.account_name ||
@@ -195,7 +231,10 @@ export class PayoutService {
           data?.response?.accountName ||
           data?.accountNameInquiryResponse?.accountName;
 
+        console.log('🔍 [NAME ENQUIRY] Extracted accountName:', accountName);
+
         if (typeof accountName === 'string' && accountName.trim().length > 0) {
+          console.log('✅ [NAME ENQUIRY] Successfully found account name:', accountName.trim());
           return { accountName: accountName.trim() };
         }
 
@@ -204,12 +243,18 @@ export class PayoutService {
           data?.message ||
           data?.responseDescription ||
           'Failed to verify bank account';
+        console.error(
+          '❌ [NAME ENQUIRY] No account name found in response. Error message:',
+          message
+        );
         throw new Error(message);
       }
 
       // Fallback: existing payout customer-lookup (requires OAuth token)
+      console.log('🔍 [NAME ENQUIRY] No terminalId - falling back to OAuth customer-lookup');
       const token = await this.getAccessToken();
       const transactionRef = this.generateTransactionRef();
+      console.log('🔍 [NAME ENQUIRY] Generated transaction ref:', transactionRef);
 
       const requestData: BankLookupRequest = {
         transactionReference: transactionRef,
@@ -221,6 +266,8 @@ export class PayoutService {
           recipientAccount: accountNumber,
         },
       };
+
+      console.log('🔍 [NAME ENQUIRY] Fallback request data:', JSON.stringify(requestData, null, 2));
 
       const response = await axios.post<BankLookupResponse>(
         `${this.apiBaseUrl}/api/v1/payouts/customer-lookup`,
@@ -234,19 +281,44 @@ export class PayoutService {
         }
       );
 
+      console.log('🔍 [NAME ENQUIRY] Fallback response status:', response.status);
+      console.log(
+        '🔍 [NAME ENQUIRY] Fallback response data:',
+        JSON.stringify(response.data, null, 2)
+      );
+      console.log(
+        '✅ [NAME ENQUIRY] Successfully found account name via fallback:',
+        response.data.recipientName
+      );
+
       return {
         accountName: response.data.recipientName,
       };
     } catch (error) {
+      console.error('❌ [NAME ENQUIRY] Error occurred during bank account lookup');
+
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<any>;
-        console.error('Bank lookup error:', axiosError.response?.data);
-        throw new Error(
+        console.error('❌ [NAME ENQUIRY] Axios error details:');
+        console.error('   - Status:', axiosError.response?.status);
+        console.error('   - Status Text:', axiosError.response?.statusText);
+        console.error('   - Response Headers:', axiosError.response?.headers);
+        console.error('   - Response Data:', JSON.stringify(axiosError.response?.data, null, 2));
+        console.error('   - Request URL:', axiosError.config?.url);
+        console.error('   - Request Method:', axiosError.config?.method);
+        console.error('   - Request Headers:', axiosError.config?.headers);
+
+        const errorMessage =
           axiosError.response?.data?.message ||
-            axiosError.response?.data?.responseDescription ||
-            'Failed to verify bank account'
-        );
+          axiosError.response?.data?.responseDescription ||
+          axiosError.response?.data?.responseMessage ||
+          'Failed to verify bank account';
+
+        console.error('❌ [NAME ENQUIRY] Throwing error:', errorMessage);
+        throw new Error(errorMessage);
       }
+
+      console.error('❌ [NAME ENQUIRY] Non-axios error:', error);
       throw error;
     }
   }
