@@ -37,6 +37,7 @@ export interface AuthResponse {
     brandLogo: string | null;
     brandBanner: string | null;
     bio: string | null;
+    createdAt: string;
   };
   token: string;
   expiresIn: number;
@@ -107,6 +108,7 @@ class AuthService {
         brandLogo: user.brandLogo,
         brandBanner: user.brandBanner,
         bio: user.bio,
+        createdAt: user.createdAt.toISOString(),
       },
       token,
       expiresIn: 604800, // 7 days in seconds
@@ -152,6 +154,7 @@ class AuthService {
         brandLogo: user.brandLogo,
         brandBanner: user.brandBanner,
         bio: user.bio,
+        createdAt: user.createdAt.toISOString(),
       },
       token,
       expiresIn: 604800,
