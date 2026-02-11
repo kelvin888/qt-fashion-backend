@@ -120,15 +120,19 @@ export class PayoutService {
   private async getAccessToken(): Promise<string> {
     // Return cached token if still valid
     if (this.accessToken && Date.now() < this.tokenExpiry) {
+      console.log('🔐 [AUTH] Using cached access token');
       return this.accessToken;
     }
 
     try {
-      // Note: Interswitch might use Basic Auth or OAuth2 - adjust based on actual API docs
+      console.log('🔐 [AUTH] Requesting new access token');
+      console.log('🔐 [AUTH] Token URL:', `${this.apiBaseUrl}/oauth/token`);
+      
       const authString = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+      console.log('🔐 [AUTH] Using Basic Auth with clientId:', this.clientId);
 
       const response = await axios.post<InterswitchAuthResponse>(
-        `${this.apiBaseUrl}/api/v1/auth/token`,
+        `${this.apiBaseUrl}/oauth/token`,
         {
           grant_type: 'client_credentials',
         },
@@ -140,13 +144,20 @@ export class PayoutService {
         }
       );
 
+      console.log('✅ [AUTH] Successfully retrieved access token');
+      console.log('🔐 [AUTH] Token expires in:', response.data.expires_in, 'seconds');
+      
       this.accessToken = response.data.access_token;
       // Set expiry to 5 minutes before actual expiry for safety
       this.tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
 
       return this.accessToken;
     } catch (error) {
-      console.error('Failed to get Interswitch access token:', error);
+      console.error('❌ [AUTH] Failed to get Interswitch access token');
+      if (axios.isAxiosError(error)) {
+        console.error('❌ [AUTH] Status:', error.response?.status);
+        console.error('❌ [AUTH] Response:', JSON.stringify(error.response?.data, null, 2));
+      }
       throw new Error('Failed to authenticate with payment provider');
     }
   }
@@ -164,136 +175,83 @@ export class PayoutService {
       bankCode,
       accountNumber,
       amount,
-      hasTerminalId: !!this.terminalId,
       apiBaseUrl: this.apiBaseUrl,
     });
 
     try {
-      // Preferred: Quickteller Account Name Inquiry (QA)
-      // curl --request POST \
-      //  --url https://qa.interswitchng.com/quicktellerservice/api/v5/Transactions/DoAccountNameInquiry \
-      //  --header 'Content-Type: application/json' \
-      //  --header 'TerminalID: TERMINAL_ID' \
-      //  --header 'accept: application/json' \
-      //  --header 'accountid: 0730804844' \
-      //  --header 'bankcode: 044'
-      if (this.terminalId) {
-        console.log('🔍 [NAME ENQUIRY] Using Quickteller DoAccountNameInquiry endpoint');
-        console.log('🔍 [NAME ENQUIRY] Request headers:', {
-          'Content-Type': 'application/json',
-          accept: 'application/json',
-          TerminalID: this.terminalId,
-          accountid: accountNumber,
-          bankcode: bankCode,
-        });
-
-        const response = await axios.post(
-          `${this.apiBaseUrl}/quicktellerservice/api/v5/Transactions/DoAccountNameInquiry`,
-          {},
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              accept: 'application/json',
-              TerminalID: this.terminalId,
-              accountid: accountNumber,
-              bankcode: bankCode,
-            },
-            timeout: 15000,
-          }
-        );
-
-        console.log('🔍 [NAME ENQUIRY] Response status:', response.status);
-        console.log('🔍 [NAME ENQUIRY] Response headers:', response.headers);
-        console.log('🔍 [NAME ENQUIRY] Raw response data:', JSON.stringify(response.data, null, 2));
-
-        const data: any = response.data;
-
-        console.log('🔍 [NAME ENQUIRY] Checking for accountName in various fields...');
-        console.log('🔍 [NAME ENQUIRY] data.accountName:', data?.accountName);
-        console.log('🔍 [NAME ENQUIRY] data.account_name:', data?.account_name);
-        console.log('🔍 [NAME ENQUIRY] data.accountname:', data?.accountname);
-        console.log('🔍 [NAME ENQUIRY] data.customerName:', data?.customerName);
-        console.log('🔍 [NAME ENQUIRY] data.name:', data?.name);
-        console.log('🔍 [NAME ENQUIRY] data.data?.accountName:', data?.data?.accountName);
-        console.log('🔍 [NAME ENQUIRY] data.response?.accountName:', data?.response?.accountName);
-        console.log(
-          '🔍 [NAME ENQUIRY] data.accountNameInquiryResponse?.accountName:',
-          data?.accountNameInquiryResponse?.accountName
-        );
-
-        const accountName: string | undefined =
-          data?.accountName ||
-          data?.account_name ||
-          data?.accountname ||
-          data?.customerName ||
-          data?.name ||
-          data?.data?.accountName ||
-          data?.response?.accountName ||
-          data?.accountNameInquiryResponse?.accountName;
-
-        console.log('🔍 [NAME ENQUIRY] Extracted accountName:', accountName);
-
-        if (typeof accountName === 'string' && accountName.trim().length > 0) {
-          console.log('✅ [NAME ENQUIRY] Successfully found account name:', accountName.trim());
-          return { accountName: accountName.trim() };
-        }
-
-        const message =
-          data?.responseMessage ||
-          data?.message ||
-          data?.responseDescription ||
-          'Failed to verify bank account';
-        console.error(
-          '❌ [NAME ENQUIRY] No account name found in response. Error message:',
-          message
-        );
-        throw new Error(message);
-      }
-
-      // Fallback: existing payout customer-lookup (requires OAuth token)
-      console.log('🔍 [NAME ENQUIRY] No terminalId - falling back to OAuth customer-lookup');
+      // Get OAuth token first
+      console.log('🔍 [NAME ENQUIRY] Getting OAuth access token...');
       const token = await this.getAccessToken();
-      const transactionRef = this.generateTransactionRef();
-      console.log('🔍 [NAME ENQUIRY] Generated transaction ref:', transactionRef);
+      console.log('✅ [NAME ENQUIRY] Got access token');
 
-      const requestData: BankLookupRequest = {
-        transactionReference: transactionRef,
-        payoutChannel: 'BANK_TRANSFER',
-        recipient: {
-          currencyCode: 'NGN',
-          amount: amount,
-          recipientBank: bankCode,
-          recipientAccount: accountNumber,
-        },
-      };
+      // Perform name enquiry using GET request (as per Java implementation)
+      const url = `${this.apiBaseUrl}/api/v5/Transactions/DoAccountNameInquiry`;
+      console.log('🔍 [NAME ENQUIRY] Request URL:', url);
+      console.log('🔍 [NAME ENQUIRY] Request method: GET');
+      console.log('🔍 [NAME ENQUIRY] Request headers:', {
+        Authorization: 'Bearer [token]',
+        accountId: accountNumber,
+        bankCode: bankCode,
+      });
 
-      console.log('🔍 [NAME ENQUIRY] Fallback request data:', JSON.stringify(requestData, null, 2));
-
-      const response = await axios.post<BankLookupResponse>(
-        `${this.apiBaseUrl}/api/v1/payouts/customer-lookup`,
-        requestData,
+      const response = await axios.get(
+        url,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            accountId: accountNumber,
+            bankCode: bankCode,
           },
           timeout: 15000,
         }
       );
 
-      console.log('🔍 [NAME ENQUIRY] Fallback response status:', response.status);
+      console.log('🔍 [NAME ENQUIRY] Response status:', response.status);
+      console.log('🔍 [NAME ENQUIRY] Response headers:', response.headers);
+      console.log('🔍 [NAME ENQUIRY] Raw response data:', JSON.stringify(response.data, null, 2));
+
+      const data: any = response.data;
+
+      console.log('🔍 [NAME ENQUIRY] Checking for accountName in various fields...');
+      console.log('🔍 [NAME ENQUIRY] data.accountName:', data?.accountName);
+      console.log('🔍 [NAME ENQUIRY] data.account_name:', data?.account_name);
+      console.log('🔍 [NAME ENQUIRY] data.accountname:', data?.accountname);
+      console.log('🔍 [NAME ENQUIRY] data.customerName:', data?.customerName);
+      console.log('🔍 [NAME ENQUIRY] data.name:', data?.name);
+      console.log('🔍 [NAME ENQUIRY] data.data?.accountName:', data?.data?.accountName);
+      console.log('🔍 [NAME ENQUIRY] data.response?.accountName:', data?.response?.accountName);
       console.log(
-        '🔍 [NAME ENQUIRY] Fallback response data:',
-        JSON.stringify(response.data, null, 2)
-      );
-      console.log(
-        '✅ [NAME ENQUIRY] Successfully found account name via fallback:',
-        response.data.recipientName
+        '🔍 [NAME ENQUIRY] data.accountNameInquiryResponse?.accountName:',
+        data?.accountNameInquiryResponse?.accountName
       );
 
-      return {
-        accountName: response.data.recipientName,
-      };
+      const accountName: string | undefined =
+        data?.accountName ||
+        data?.account_name ||
+        data?.accountname ||
+        data?.customerName ||
+        data?.name ||
+        data?.data?.accountName ||
+        data?.response?.accountName ||
+        data?.accountNameInquiryResponse?.accountName;
+
+      console.log('🔍 [NAME ENQUIRY] Extracted accountName:', accountName);
+
+      if (typeof accountName === 'string' && accountName.trim().length > 0) {
+        console.log('✅ [NAME ENQUIRY] Successfully found account name:', accountName.trim());
+        return { accountName: accountName.trim() };
+      }
+
+      const message =
+        data?.responseMessage ||
+        data?.message ||
+        data?.responseDescription ||
+        'Failed to verify bank account';
+      console.error(
+        '❌ [NAME ENQUIRY] No account name found in response. Error message:',
+        message
+      );
+      throw new Error(message);
     } catch (error) {
       console.error('❌ [NAME ENQUIRY] Error occurred during bank account lookup');
 
@@ -312,7 +270,7 @@ export class PayoutService {
           axiosError.response?.data?.message ||
           axiosError.response?.data?.responseDescription ||
           axiosError.response?.data?.responseMessage ||
-          'Failed to verify bank account';
+          'Failed to verify bank account. Please check the account number and bank code are correct.';
 
         console.error('❌ [NAME ENQUIRY] Throwing error:', errorMessage);
         throw new Error(errorMessage);
