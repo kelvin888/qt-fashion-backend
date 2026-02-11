@@ -327,6 +327,41 @@ export const submitBid = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'This request is no longer accepting bids' });
     }
 
+    // Validate timeline as date
+    let completionDate: Date;
+    try {
+      completionDate = new Date(timeline);
+      if (isNaN(completionDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid completion date format' });
+      }
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid completion date format' });
+    }
+
+    // Validate completion date is at least 3 days from now
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+    if (completionDate < threeDaysFromNow) {
+      return res.status(400).json({
+        error: 'Completion date must be at least 3 days from now',
+      });
+    }
+
+    // Validate completion date doesn't exceed request deadline
+    if (customRequest.deadline) {
+      const requestDeadline = new Date(customRequest.deadline);
+      if (completionDate > requestDeadline) {
+        const deadlineStr = requestDeadline.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+        return res.status(400).json({
+          error: `Completion date cannot exceed the request deadline of ${deadlineStr}`,
+        });
+      }
+    }
+
     // If request has a deadline, designer must explicitly indicate they can meet it
     if (customRequest.deadline && canMeetDeadline === undefined) {
       return res.status(400).json({
