@@ -4,7 +4,8 @@ import offerService from '../services/offer.service';
 export const createOffer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log('🔵 [CREATE OFFER] Received request body:', JSON.stringify(req.body, null, 2));
-    const { designId, customerPrice, measurements, notes, expiresAt, tryOnImageUrl } = req.body;
+    const { designId, customerPrice, measurements, notes, expiresAt, tryOnImageUrl, deadline } =
+      req.body;
 
     console.log('🔵 [CREATE OFFER] Extracted measurements:', measurements);
     console.log('🔵 [CREATE OFFER] measurements type:', typeof measurements);
@@ -19,6 +20,19 @@ export const createOffer = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
+    // Validate deadline (must be at least 3 days in the future if provided)
+    if (deadline) {
+      const deadlineDate = new Date(deadline);
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+      if (deadlineDate < threeDaysFromNow) {
+        return res.status(400).json({
+          message: 'Deadline must be at least 3 days from now',
+        });
+      }
+    }
+
     // Get design to find designerId
     const offer = await offerService.createOffer({
       customerId: req.user!.id,
@@ -29,6 +43,7 @@ export const createOffer = async (req: Request, res: Response, next: NextFunctio
       notes,
       tryOnImageUrl,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+      deadline: deadline ? new Date(deadline) : undefined,
     });
 
     console.log('🔵 [CREATE OFFER] Created offer with measurements:', offer.measurements);

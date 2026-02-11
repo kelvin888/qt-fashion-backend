@@ -21,50 +21,50 @@ enum UserRole {
 }
 
 enum OfferStatus {
-  PENDING       // Initial offer from customer
-  ACCEPTED      // Designer accepted the offer
-  REJECTED      // Designer rejected the offer
-  COUNTERED     // Designer made a counter offer
-  WITHDRAWN     // Customer withdrew the offer
-  EXPIRED       // Offer expired
+  PENDING // Initial offer from customer
+  ACCEPTED // Designer accepted the offer
+  REJECTED // Designer rejected the offer
+  COUNTERED // Designer made a counter offer
+  WITHDRAWN // Customer withdrew the offer
+  EXPIRED // Offer expired
 }
 
 enum OrderStatus {
-  PENDING       // Order created, awaiting production start
-  SOURCING      // Fabric sourcing in progress
-  CONSTRUCTION  // Garment construction in progress
+  PENDING // Order created, awaiting production start
+  SOURCING // Fabric sourcing in progress
+  CONSTRUCTION // Garment construction in progress
   QUALITY_CHECK // Quality inspection
-  SHIPPING      // Out for delivery
-  DELIVERED     // Delivered to customer
-  CANCELLED     // Order cancelled
+  SHIPPING // Out for delivery
+  DELIVERED // Delivered to customer
+  CANCELLED // Order cancelled
 }
 
 enum PaymentStatus {
-  PENDING       // Payment initiated, awaiting completion
-  SUCCESSFUL    // Payment completed successfully
-  FAILED        // Payment failed
-  CANCELLED     // Payment cancelled by user
-  EXPIRED       // Payment link expired (30 minutes)
+  PENDING // Payment initiated, awaiting completion
+  SUCCESSFUL // Payment completed successfully
+  FAILED // Payment failed
+  CANCELLED // Payment cancelled by user
+  EXPIRED // Payment link expired (30 minutes)
 }
 
 enum CustomRequestStatus {
-  OPEN          // Open for bids
-  CLOSED        // No longer accepting bids
-  IN_PROGRESS   // Customer selected a bid, order being fulfilled
-  COMPLETED     // Order completed
-  CANCELLED     // Request cancelled
+  OPEN // Open for bids
+  CLOSED // No longer accepting bids
+  IN_PROGRESS // Customer selected a bid, order being fulfilled
+  COMPLETED // Order completed
+  CANCELLED // Request cancelled
 }
 
 enum BidStatus {
-  PENDING       // Bid submitted, awaiting customer review
-  ACCEPTED      // Customer accepted this bid
-  REJECTED      // Customer rejected this bid
-  WITHDRAWN     // Designer withdrew their bid
+  PENDING // Bid submitted, awaiting customer review
+  ACCEPTED // Customer accepted this bid
+  REJECTED // Customer rejected this bid
+  WITHDRAWN // Designer withdrew their bid
 }
 
 enum MeasurementCaptureMethod {
-  PHOTO         // Captured via camera with photos
-  MANUAL        // Manually entered by user
+  PHOTO // Captured via camera with photos
+  MANUAL // Manually entered by user
 }
 
 // Note: Category is now a String field (not enum) to allow dynamic categories
@@ -75,185 +75,192 @@ enum MeasurementCaptureMethod {
 // ========================================
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password      String
-  fullName      String   @default("")
-  phoneNumber   String?
-  role          UserRole @default(CUSTOMER)
-  
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  fullName    String   @default("")
+  phoneNumber String?
+  role        UserRole @default(CUSTOMER)
+
   // Optional designer fields
-  profileImage  String?
-  brandName     String?
-  brandLogo     String?
-  brandBanner   String?
-  bio           String?
-  
+  profileImage String?
+  brandName    String?
+  brandLogo    String?
+  brandBanner  String?
+  bio          String?
+
   // Wallet for designers
-  walletBalance Float    @default(0)
-  
+  walletBalance Float @default(0)
+
   // Bank account details for payouts
-  accountNumber    String?
-  accountName      String?
-  bankName         String?
-  bankCode         String?
-  accountVerified  Boolean  @default(false)
-  
+  accountNumber   String?
+  accountName     String?
+  bankName        String?
+  bankCode        String?
+  accountVerified Boolean @default(false)
+
   // Relations
-  designs       Design[]
-  payouts       Payout[]  @relation("UserPayouts")
-  offersAsCustomer  Offer[]  @relation("CustomerOffers")
-  offersAsDesigner  Offer[]  @relation("DesignerOffers")
-  ordersAsCustomer  Order[]  @relation("CustomerOrders")
-  ordersAsDesigner  Order[]  @relation("DesignerOrders")
-  measurements  BodyMeasurement[]  @relation("UserMeasurements")
+  designs            Design[]
+  payouts            Payout[]            @relation("UserPayouts")
+  offersAsCustomer   Offer[]             @relation("CustomerOffers")
+  offersAsDesigner   Offer[]             @relation("DesignerOffers")
+  ordersAsCustomer   Order[]             @relation("CustomerOrders")
+  ordersAsDesigner   Order[]             @relation("DesignerOrders")
+  measurements       BodyMeasurement[]   @relation("UserMeasurements")
   walletTransactions WalletTransaction[] @relation("UserWalletTransactions")
-  addresses     Address[]  @relation("UserAddresses")
-  
+  addresses          Address[]           @relation("UserAddresses")
+
   // Custom Requests relations
-  customRequests       CustomRequest[]     @relation("CustomerRequests")
-  customRequestBids    CustomRequestBid[]  @relation("DesignerBids")
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  customRequests    CustomRequest[]    @relation("CustomerRequests")
+  customRequestBids CustomRequestBid[] @relation("DesignerBids")
+
+  // Notifications
+  notifications Notification[] @relation("UserNotifications")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
 
 model Design {
-  id              String          @id @default(cuid())
-  designerId      String
-  designer        User            @relation(fields: [designerId], references: [id], onDelete: Cascade)
-  
-  // Design details
-  title           String
-  description     String
-  price           Float
-  images          String[]        // Array of image URLs
-  category        String          // Dynamic category (e.g., "MODERN", "TRADITIONAL", etc.)
-  fabricType      String?
-  colors          String[]        // Available colors
-  sizes           String[]        // Available sizes
-  
-  // Customization
-  customizable    Boolean         @default(false)
-  customizations  Json?           // JSON for custom options
-  
-  // Production workflow
-  productionSteps Json?           // Array of {id, title, estimatedTime, description}
-  
-  // Metadata
-  views           Int             @default(0)
-  featured        Boolean         @default(false)
-  
-  // Relations
-  offers          Offer[]
-  orders          Order[]
-  
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id         String @id @default(cuid())
+  designerId String
+  designer   User   @relation(fields: [designerId], references: [id], onDelete: Cascade)
 
-  @@map("designs")
+  // Design details
+  title       String
+  description String
+  price       Float
+  images      String[] // Array of image URLs
+  category    String // Dynamic category (e.g., "MODERN", "TRADITIONAL", etc.)
+  fabricType  String?
+  colors      String[] // Available colors
+  sizes       String[] // Available sizes
+
+  // Customization
+  customizable   Boolean @default(false)
+  customizations Json? // JSON for custom options
+
+  // Production workflow
+  productionSteps Json? // Array of {id, title, estimatedTime, description}
+
+  // Metadata
+  views    Int     @default(0)
+  featured Boolean @default(false)
+
+  // Relations
+  offers Offer[]
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([designerId])
   @@index([category])
+  @@map("designs")
 }
 
 model Offer {
-  id              String        @id @default(cuid())
-  
-  // Relationships
-  customerId      String
-  customer        User          @relation("CustomerOffers", fields: [customerId], references: [id], onDelete: Cascade)
-  
-  designerId      String
-  designer        User          @relation("DesignerOffers", fields: [designerId], references: [id], onDelete: Cascade)
-  
-  designId        String
-  design          Design        @relation(fields: [designId], references: [id], onDelete: Cascade)
-  
-  // Offer details
-  status          OfferStatus   @default(PENDING)
-  customerPrice   Float         // Customer's offered price
-  designerPrice   Float?        // Designer's counter price (if countered)
-  finalPrice      Float?        // Agreed price (when accepted)
-  
-  // Customer measurements (optional - for custom orders)
-  measurements    Json?
-  
-  // Try-on image (if customer did virtual try-on before making offer)
-  tryOnImageUrl   String?
-  
-  // Additional details
-  notes           String?       // Customer's notes/requirements
-  designerNotes   String?       // Designer's response notes
-  
-  // Timestamps
-  expiresAt       DateTime?     // Offer expiration
-  acceptedAt      DateTime?     // When designer accepted
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  // Relations
-  order           Order?        @relation("OfferOrder")
+  id String @id @default(cuid())
 
-  @@map("offers")
+  // Relationships
+  customerId String
+  customer   User   @relation("CustomerOffers", fields: [customerId], references: [id], onDelete: Cascade)
+
+  designerId String
+  designer   User   @relation("DesignerOffers", fields: [designerId], references: [id], onDelete: Cascade)
+
+  designId String
+  design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  // Offer details
+  status        OfferStatus @default(PENDING)
+  customerPrice Float // Customer's offered price
+  designerPrice Float? // Designer's counter price (if countered)
+  finalPrice    Float? // Agreed price (when accepted)
+
+  // Customer measurements (optional - for custom orders)
+  measurements Json?
+
+  // Try-on image (if customer did virtual try-on before making offer)
+  tryOnImageUrl String?
+
+  // Additional details
+  notes         String? // Customer's notes/requirements
+  designerNotes String? // Designer's response notes
+  deadline      DateTime? // Expected delivery deadline (from custom request or customer request)
+
+  // Timestamps
+  expiresAt  DateTime? // Offer expiration
+  acceptedAt DateTime? // When designer accepted
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  order Order? @relation("OfferOrder")
+
   @@index([customerId])
   @@index([designerId])
   @@index([designId])
   @@index([status])
+  @@map("offers")
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique // Human-readable order number (e.g., QT-2024-001)
-  
-  // Original offer reference
-  offerId         String        @unique
-  offer           Offer         @relation("OfferOrder", fields: [offerId], references: [id], onDelete: Restrict)
-  
-  // Relationships
-  customerId      String
-  customer        User          @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
-  
-  designerId      String
-  designer        User          @relation("DesignerOrders", fields: [designerId], references: [id], onDelete: Cascade)
-  
-  designId        String
-  design          Design        @relation(fields: [designId], references: [id], onDelete: Restrict)
-  
-  // Order details
-  status          OrderStatus   @default(PENDING)
-  finalPrice      Float         // Agreed price from offer
-  
-  // Customer measurements (from offer)
-  measurements    Json?
-  
-  // Production tracking
-  productionSteps Json?         // Array of {step: string, status: 'pending'|'in_progress'|'completed', completedAt?: date}
-  progressNotes   String?       // Designer's progress updates
-  
-  // Shipment tracking
-  carrier         String?
-  trackingNumber  String?
-  estimatedDelivery DateTime?
-  deliveredAt     DateTime?
-  
-  // Customer feedback (after delivery)
-  rating          Int?          // 1-5 star rating
-  review          String?       // Customer review text
-  
-  // Payment and shipping
-  paymentTransactionId String?  @unique
-  paymentTransaction   PaymentTransaction? @relation("OrderPayment", fields: [paymentTransactionId], references: [id])
-  
-  shippingAddressId    String?
-  shippingAddress      Address? @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
-  
-  // Timestamps
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id          String @id @default(cuid())
+  orderNumber String @unique // Human-readable order number (e.g., QT-2024-001)
 
-  @@map("orders")
+  // Original offer reference
+  offerId String @unique
+  offer   Offer  @relation("OfferOrder", fields: [offerId], references: [id], onDelete: Restrict)
+
+  // Relationships
+  customerId String
+  customer   User   @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Cascade)
+
+  designerId String
+  designer   User   @relation("DesignerOrders", fields: [designerId], references: [id], onDelete: Cascade)
+
+  designId String
+  design   Design @relation(fields: [designId], references: [id], onDelete: Restrict)
+
+  // Order details
+  status     OrderStatus @default(PENDING)
+  finalPrice Float // Agreed price from offer
+
+  // Customer measurements (from offer)
+  measurements Json?
+
+  // Production tracking
+  productionSteps Json? // Array of {step: string, status: 'pending'|'in_progress'|'completed', completedAt?: date}
+  progressNotes   String? // Designer's progress updates
+
+  // Shipment tracking
+  carrier           String?
+  trackingNumber    String?
+  estimatedDelivery DateTime?
+  deliveredAt       DateTime?
+  deadline          DateTime? // Customer's expected delivery deadline
+
+  // Customer feedback (after delivery)
+  rating Int? // 1-5 star rating
+  review String? // Customer review text
+
+  // Payment and shipping
+  paymentTransactionId String?             @unique
+  paymentTransaction   PaymentTransaction? @relation("OrderPayment", fields: [paymentTransactionId], references: [id])
+
+  shippingAddressId String?
+  shippingAddress   Address? @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
+
+  // Notifications
+  notifications Notification[] @relation("OrderNotifications")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([customerId])
   @@index([designerId])
   @@index([designId])
@@ -261,247 +268,281 @@ model Order {
   @@index([orderNumber])
   @@index([paymentTransactionId])
   @@index([shippingAddressId])
+  @@map("orders")
 }
 
 // Body measurements for virtual try-on
 model BodyMeasurement {
-  id                  String    @id @default(cuid())
-  userId              String
-  user                User      @relation("UserMeasurements", fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Measurements in cm
-  chest               Float
-  waist               Float
-  hips                Float
-  height              Float
-  shoulder            Float
-  armLength           Float
-  inseam              Float
-  neck                Float
-  
-  // Capture method
-  captureMethod       MeasurementCaptureMethod @default(PHOTO)
-  
-  // Photos (nullable for manual entry)
-  frontPhoto          String?
-  sidePhoto           String?
-  
-  // AI metadata (only for photo captures)
-  aiConfidenceScore   Float?
-  aiMetadata          Json?
-  
-  isActive            Boolean   @default(false)
-  
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserMeasurements", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("body_measurements")
+  // Measurements in cm
+  chest     Float
+  waist     Float
+  hips      Float
+  height    Float
+  shoulder  Float
+  armLength Float
+  inseam    Float
+  neck      Float
+
+  // Capture method
+  captureMethod MeasurementCaptureMethod @default(PHOTO)
+
+  // Photos (nullable for manual entry)
+  frontPhoto String?
+  sidePhoto  String?
+
+  // AI metadata (only for photo captures)
+  aiConfidenceScore Float?
+  aiMetadata        Json?
+
+  isActive Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([isActive])
+  @@map("body_measurements")
 }
 
 // Wallet transaction tracking
 model WalletTransaction {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation("UserWalletTransactions", fields: [userId], references: [id], onDelete: Cascade)
-  
-  type            String    // 'CREDIT' or 'DEBIT'
-  amount          Float
-  balanceBefore   Float
-  balanceAfter    Float
-  description     String
-  orderId         String?   // Reference to order if applicable
-  
-  createdAt       DateTime  @default(now())
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserWalletTransactions", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("wallet_transactions")
+  type          String // 'CREDIT' or 'DEBIT'
+  amount        Float
+  balanceBefore Float
+  balanceAfter  Float
+  description   String
+  orderId       String? // Reference to order if applicable
+
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([orderId])
+  @@map("wallet_transactions")
 }
 
 // Payout/withdrawal tracking
 model Payout {
-  id                    String    @id @default(cuid())
-  userId                String
-  user                  User      @relation("UserPayouts", fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserPayouts", fields: [userId], references: [id], onDelete: Cascade)
+
   // Amount details
-  amount                Float     // Amount requested by designer
-  fee                   Float     // Interswitch processing fee
-  netAmount             Float     // Amount - fee (what designer receives)
-  
+  amount    Float // Amount requested by designer
+  fee       Float // Interswitch processing fee
+  netAmount Float // Amount - fee (what designer receives)
+
   // Status tracking
-  status                String    // PENDING, PROCESSING, SUCCESSFUL, FAILED
-  channel               String    @default("BANK_TRANSFER")
-  
+  status  String // PENDING, PROCESSING, SUCCESSFUL, FAILED
+  channel String @default("BANK_TRANSFER")
+
   // Recipient details
-  recipientBank         String
-  recipientAccount      String
-  recipientName         String
-  
+  recipientBank    String
+  recipientAccount String
+  recipientName    String
+
   // Transaction references
-  transactionReference  String    @unique  // Our internal reference
-  interswitchReference  String?            // Interswitch transaction reference
-  processingReference   String?            // Interswitch processing reference
-  
+  transactionReference String  @unique // Our internal reference
+  interswitchReference String? // Interswitch transaction reference
+  processingReference  String? // Interswitch processing reference
+
   // Response details
-  responseCode          String?
-  responseMessage       String?
-  narration             String?
-  
+  responseCode    String?
+  responseMessage String?
+  narration       String?
+
   // Retry tracking
-  retryCount            Int       @default(0)
-  
+  retryCount Int @default(0)
+
   // Timestamps
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  completedAt           DateTime?
-  
-  @@map("payouts")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
   @@index([userId])
   @@index([status])
   @@index([transactionReference])
+  @@map("payouts")
 }
 
 // Shipping addresses for customers
 model Address {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation("UserAddresses", fields: [userId], references: [id], onDelete: Cascade)
-  
-  addressLine1    String
-  addressLine2    String?
-  city            String
-  state           String
-  country         String
-  postalCode      String
-  isDefault       Boolean   @default(false)
-  
-  // Relations
-  orders          Order[]   @relation("OrderShippingAddress")
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserAddresses", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("addresses")
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  country      String
+  postalCode   String
+  isDefault    Boolean @default(false)
+
+  // Relations
+  orders Order[] @relation("OrderShippingAddress")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([userId, isDefault])
+  @@map("addresses")
 }
 
 // Payment transactions with Interswitch
 model PaymentTransaction {
-  id                    String        @id @default(cuid())
-  
-  // Related records
-  offerId               String
-  orderId               String?       // Populated after successful payment
-  order                 Order?        @relation("OrderPayment")
-  
-  // Transaction identifiers
-  txnRef                String        @unique // Our generated transaction reference
-  paymentReference      String?       // Interswitch payment reference
-  
-  // Payment details
-  amount                Float         // Amount in Naira
-  currency              String        @default("566") // ISO 4217 code for NGN
-  status                PaymentStatus @default(PENDING)
-  
-  // Interswitch response
-  responseCode          String?       // Response code from Interswitch
-  responseDescription   String?       // Response description from Interswitch
-  
-  // Retry tracking
-  retriesCount          Int           @default(0)
-  
-  // Expiration (30 minutes from creation)
-  expiresAt             DateTime
-  paidAt                DateTime?
-  
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id String @id @default(cuid())
 
-  @@map("payment_transactions")
+  // Related records
+  offerId String
+  orderId String? // Populated after successful payment
+  order   Order?  @relation("OrderPayment")
+
+  // Transaction identifiers
+  txnRef           String  @unique // Our generated transaction reference
+  paymentReference String? // Interswitch payment reference
+
+  // Payment details
+  amount   Float // Amount in Naira
+  currency String        @default("566") // ISO 4217 code for NGN
+  status   PaymentStatus @default(PENDING)
+
+  // Interswitch response
+  responseCode        String? // Response code from Interswitch
+  responseDescription String? // Response description from Interswitch
+
+  // Retry tracking
+  retriesCount Int @default(0)
+
+  // Expiration (30 minutes from creation)
+  expiresAt DateTime
+  paidAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([offerId])
   @@index([txnRef])
   @@index([status])
   @@index([expiresAt])
+  @@map("payment_transactions")
 }
 
 // Custom Design Requests (Reverse Marketplace)
 model CustomRequest {
-  id                  String                @id @default(cuid())
-  
-  // Customer who posted the request
-  customerId          String
-  customer            User                  @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
-  
-  // Request details
-  title               String
-  description         String
-  category            String                // e.g., "WEDDING", "BUSINESS", "CASUAL"
-  referenceImages     String[]              // Array of image URLs
-  budget              Float?                // Optional budget range
-  deadline            DateTime?             // Optional completion deadline
-  
-  // Requirements
-  requirements        Json?                 // Additional requirements as JSON
-  
-  // Customer measurements (mandatory)
-  measurements        Json                  // Required measurements for designers
-  
-  // Status
-  status              CustomRequestStatus   @default(OPEN)
-  
-  // Selected bid (when status becomes IN_PROGRESS)
-  selectedBidId       String?               @unique
-  selectedBid         CustomRequestBid?     @relation("SelectedBid", fields: [selectedBidId], references: [id])
-  
-  // Relations
-  bids                CustomRequestBid[]    @relation("RequestBids")
-  
-  // Timestamps
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  closedAt            DateTime?             // When request was closed
+  id String @id @default(cuid())
 
-  @@map("custom_requests")
+  // Customer who posted the request
+  customerId String
+  customer   User   @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
+
+  // Request details
+  title           String
+  description     String
+  category        String // e.g., "WEDDING", "BUSINESS", "CASUAL"
+  referenceImages String[] // Array of image URLs
+  budget          Float? // Optional budget range
+  deadline        DateTime? // Optional completion deadline
+
+  // Requirements
+  requirements Json? // Additional requirements as JSON
+
+  // Customer measurements (mandatory)
+  measurements Json // Required measurements for designers
+
+  // Status
+  status CustomRequestStatus @default(OPEN)
+
+  // Selected bid (when status becomes IN_PROGRESS)
+  selectedBidId String?           @unique
+  selectedBid   CustomRequestBid? @relation("SelectedBid", fields: [selectedBidId], references: [id])
+
+  // Relations
+  bids CustomRequestBid[] @relation("RequestBids")
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime? // When request was closed
+
   @@index([customerId])
   @@index([status])
   @@index([category])
+  @@map("custom_requests")
 }
 
 // Bids on custom requests
 model CustomRequestBid {
-  id                  String            @id @default(cuid())
-  
-  // Request being bid on
-  requestId           String
-  request             CustomRequest     @relation("RequestBids", fields: [requestId], references: [id], onDelete: Cascade)
-  
-  // Designer making the bid
-  designerId          String
-  designer            User              @relation("DesignerBids", fields: [designerId], references: [id], onDelete: Cascade)
-  
-  // Bid details
-  price               Float             // Quoted price
-  timeline            String            // e.g., "2 weeks", "5-7 days"
-  pitch               String            // Designer's proposal/pitch
-  portfolioImages     String[]          // Array of portfolio image URLs
-  
-  // Status
-  status              BidStatus         @default(PENDING)
-  
-  // If accepted, this bid becomes the selected bid
-  selectedRequest     CustomRequest?    @relation("SelectedBid")
-  
-  // Timestamps
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  id String @id @default(cuid())
 
-  @@map("custom_request_bids")
+  // Request being bid on
+  requestId String
+  request   CustomRequest @relation("RequestBids", fields: [requestId], references: [id], onDelete: Cascade)
+
+  // Designer making the bid
+  designerId String
+  designer   User   @relation("DesignerBids", fields: [designerId], references: [id], onDelete: Cascade)
+
+  // Bid details
+  price           Float // Quoted price
+  timeline        String // e.g., "2 weeks", "5-7 days"
+  canMeetDeadline Boolean? // Whether designer can meet customer's deadline
+  deadlineNotes   String? // Designer's notes about deadline feasibility
+  pitch           String // Designer's proposal/pitch
+  portfolioImages String[] // Array of portfolio image URLs
+
+  // Status
+  status BidStatus @default(PENDING)
+
+  // If accepted, this bid becomes the selected bid
+  selectedRequest CustomRequest? @relation("SelectedBid")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([requestId, designerId]) // One bid per designer per request
   @@index([requestId])
   @@index([designerId])
   @@index([status])
-  @@unique([requestId, designerId])  // One bid per designer per request
+  @@map("custom_request_bids")
+}
+
+// In-app notifications for deadline reminders and updates
+model Notification {
+  id String @id @default(cuid())
+
+  // Recipient
+  userId String
+  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notification details
+  type    String // e.g., "DEADLINE_REMINDER", "DEADLINE_OVERDUE", "ORDER_UPDATE"
+  title   String // Notification title
+  message String // Notification message
+
+  // Optional order reference
+  orderId String?
+  order   Order?  @relation("OrderNotifications", fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Status
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
 }

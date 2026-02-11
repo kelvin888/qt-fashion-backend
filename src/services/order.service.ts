@@ -21,6 +21,7 @@ interface CreateOrderData {
   designId: string;
   finalPrice: number;
   measurements?: any;
+  deadline?: Date | null;
 }
 
 interface UpdateOrderStatusData {
@@ -111,6 +112,7 @@ class OrderService {
         measurements: data.measurements || {},
         status: 'PENDING',
         productionSteps: productionSteps as any,
+        deadline: data.deadline || null,
       },
       include: {
         customer: {
@@ -272,6 +274,7 @@ class OrderService {
         productionSteps: productionSteps as any,
         paymentTransactionId: payment.id,
         shippingAddressId: address.id,
+        deadline: offer.deadline || null,
       },
       include: {
         customer: {

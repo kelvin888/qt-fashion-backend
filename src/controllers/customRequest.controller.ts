@@ -50,6 +50,19 @@ export const createCustomRequest = async (req: Request, res: Response) => {
       });
     }
 
+    // Validate deadline (must be at least 3 days in the future)
+    if (deadline) {
+      const deadlineDate = new Date(deadline);
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+      if (deadlineDate < threeDaysFromNow) {
+        return res.status(400).json({
+          error: 'Deadline must be at least 3 days from now',
+        });
+      }
+    }
+
     const customRequest = await prisma.customRequest.create({
       data: {
         customerId: userId,
@@ -292,7 +305,7 @@ export const submitBid = async (req: Request, res: Response) => {
     }
 
     const { id: requestId } = req.params;
-    const { price, timeline, pitch, portfolioImages } = req.body;
+    const { price, timeline, pitch, portfolioImages, canMeetDeadline, deadlineNotes } = req.body;
 
     // Validate required fields
     if (!price || !timeline || !pitch) {
@@ -312,6 +325,14 @@ export const submitBid = async (req: Request, res: Response) => {
 
     if (customRequest.status !== 'OPEN') {
       return res.status(400).json({ error: 'This request is no longer accepting bids' });
+    }
+
+    // If request has a deadline, designer must explicitly indicate they can meet it
+    if (customRequest.deadline && canMeetDeadline === undefined) {
+      return res.status(400).json({
+        error:
+          'This request has a deadline. You must indicate if you can meet it by providing canMeetDeadline field',
+      });
     }
 
     // Check if designer already submitted a bid
@@ -337,6 +358,8 @@ export const submitBid = async (req: Request, res: Response) => {
         timeline,
         pitch,
         portfolioImages: portfolioImages || [],
+        canMeetDeadline: canMeetDeadline ?? null,
+        deadlineNotes: deadlineNotes || null,
       },
       include: {
         designer: {
@@ -366,8 +389,24 @@ export const getBidsForRequest = async (req: Request, res: Response) => {
   try {
     const { id: requestId } = req.params;
 
+    // Get the request to check if it has a deadline
+    const customRequest = await prisma.customRequest.findUnique({
+      where: { id: requestId },
+      select: { deadline: true },
+    });
+
+    if (!customRequest) {
+      return res.status(404).json({ error: 'Custom request not found' });
+    }
+
+    // If request has a deadline, only show bids where designer can meet it
+    const where: any = { requestId };
+    if (customRequest.deadline) {
+      where.canMeetDeadline = true;
+    }
+
     const bids = await prisma.customRequestBid.findMany({
-      where: { requestId },
+      where,
       include: {
         designer: {
           select: {
@@ -525,6 +564,8 @@ export const acceptBid = async (req: Request, res: Response) => {
           notes: offerNotes,
           designerNotes: acceptedBid.pitch,
           acceptedAt: new Date(),
+          // Store deadline in offer notes so it can be used when creating order
+          deadline: customRequest.deadline,
         },
         include: {
           design: {

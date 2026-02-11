@@ -12,6 +12,7 @@ export interface CreateOfferData {
   notes?: string;
   expiresAt?: Date;
   tryOnImageUrl?: string;
+  deadline?: Date;
 }
 
 export interface CounterOfferData {
@@ -47,6 +48,7 @@ class OfferService {
         notes: data.notes,
         tryOnImageUrl: data.tryOnImageUrl,
         expiresAt,
+        deadline: data.deadline,
         status: OfferStatus.PENDING,
       },
       include: {

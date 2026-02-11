@@ -15,6 +15,8 @@ import paymentRoutes from './routes/payment.routes';
 import addressRoutes from './routes/address.routes';
 import customRequestRoutes from './routes/customRequest.routes';
 import payoutRoutes from './routes/payout.routes';
+import notificationRoutes from './routes/notification.routes';
+import { deadlineService } from './services/deadline.service';
 
 // Load environment variables
 dotenv.config();
@@ -59,6 +61,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/custom-requests', customRequestRoutes);
 app.use('/api/payouts', payoutRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -73,6 +76,22 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+
+  // Start deadline monitoring service (runs every hour)
+  console.log('📅 Starting deadline monitoring service...');
+
+  // Run immediately on startup
+  deadlineService.monitorDeadlines().catch((err) => {
+    console.error('❌ Error in initial deadline monitoring:', err);
+  });
+
+  // Then run every hour
+  const ONE_HOUR = 60 * 60 * 1000;
+  setInterval(() => {
+    deadlineService.monitorDeadlines().catch((err) => {
+      console.error('❌ Error in scheduled deadline monitoring:', err);
+    });
+  }, ONE_HOUR);
 });
 
 export default app;
