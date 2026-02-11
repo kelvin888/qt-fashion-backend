@@ -139,7 +139,7 @@ export const addShipment = async (req: Request, res: Response, next: NextFunctio
 };
 
 /**
- * Confirm delivery (customer only)
+ * Confirm delivery (customer only) - LEGACY
  */
 export const confirmDelivery = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -158,6 +158,58 @@ export const confirmDelivery = async (req: Request, res: Response, next: NextFun
       rating,
       review,
     });
+
+    res.status(200).json(order);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
+ * Confirm receipt (customer only) - NEW ESCROW FLOW
+ * Customer confirms they received the item - releases payment immediately
+ */
+export const confirmReceipt = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user!.id;
+    const { rating, review } = req.body;
+
+    // Validate rating if provided
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      return res.status(400).json({
+        error: 'Rating must be between 1 and 5',
+      });
+    }
+
+    const order = await orderService.confirmReceipt(orderId, userId, {
+      rating,
+      review,
+    });
+
+    res.status(200).json(order);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
+ * Open dispute (customer only)
+ * Customer reports an issue with the order
+ */
+export const openDispute = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user!.id;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length < 10) {
+      return res.status(400).json({
+        error: 'Please provide a detailed reason for the dispute (at least 10 characters)',
+      });
+    }
+
+    const order = await orderService.openDispute(orderId, userId, reason);
 
     res.status(200).json(order);
   } catch (error: any) {

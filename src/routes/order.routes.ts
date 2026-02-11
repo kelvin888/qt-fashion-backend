@@ -370,6 +370,89 @@ router.post('/:orderId/confirm-delivery', orderController.confirmDelivery);
 
 /**
  * @swagger
+ * /api/orders/{orderId}/confirm-receipt:
+ *   post:
+ *     tags:
+ *       - Orders
+ *     summary: Confirm receipt (NEW ESCROW)
+ *     description: Customer confirms they received the order. Releases payment immediately to designer.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 example: 5
+ *               review:
+ *                 type: string
+ *                 example: "Beautiful work! Exactly what I wanted."
+ *     responses:
+ *       200:
+ *         description: Receipt confirmed, payment released
+ *       400:
+ *         description: Invalid rating or order status
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Order not found
+ */
+router.post('/:orderId/confirm-receipt', orderController.confirmReceipt);
+
+/**
+ * @swagger
+ * /api/orders/{orderId}/dispute:
+ *   post:
+ *     tags:
+ *       - Orders
+ *     summary: Open dispute
+ *     description: Customer opens a dispute for an order. Freezes payment until resolved.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 minLength: 10
+ *                 example: "The item doesn't match the design agreed upon. Wrong color and size."
+ *     responses:
+ *       200:
+ *         description: Dispute opened successfully
+ *       400:
+ *         description: Invalid reason or buyer protection expired
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Order not found
+ */
+router.post('/:orderId/dispute', orderController.openDispute);
+
+/**
+ * @swagger
  * /api/orders/stats/designer:
  *   get:
  *     tags:

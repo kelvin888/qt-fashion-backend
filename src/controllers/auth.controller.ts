@@ -120,3 +120,40 @@ export const logout = async (req: Request, res: Response) => {
   // Server-side logout would require token blacklisting (optional enhancement)
   res.status(200).json({ message: 'Logged out successfully' });
 };
+
+export const updatePushToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const { expoPushToken } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    if (!expoPushToken) {
+      return res.status(400).json({ message: 'expoPushToken is required' });
+    }
+
+    await authService.updatePushToken(userId, expoPushToken);
+
+    res.status(200).json({ message: 'Push token updated successfully' });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const removePushToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    await authService.removePushToken(userId);
+
+    res.status(200).json({ message: 'Push token removed successfully' });
+  } catch (error: any) {
+    next(error);
+  }
+};

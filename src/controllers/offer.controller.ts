@@ -20,15 +20,16 @@ export const createOffer = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
-    // Validate deadline (must be at least 3 days in the future if provided)
+    // Validate deadline (must be at least 6 days: 3 days production + 3 days shipping)
     if (deadline) {
       const deadlineDate = new Date(deadline);
-      const threeDaysFromNow = new Date();
-      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+      const sixDaysFromNow = new Date();
+      sixDaysFromNow.setDate(sixDaysFromNow.getDate() + 6);
 
-      if (deadlineDate < threeDaysFromNow) {
+      if (deadlineDate < sixDaysFromNow) {
         return res.status(400).json({
-          message: 'Deadline must be at least 3 days from now',
+          message:
+            'Deadline must be at least 6 days from now to allow time for production and shipping',
         });
       }
     }

@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { signup, login, logout, getProfile } from '../controllers/auth.controller';
+import {
+  signup,
+  login,
+  logout,
+  getProfile,
+  updatePushToken,
+  removePushToken,
+} from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -123,5 +130,51 @@ router.get('/profile', authenticate, getProfile);
  *         description: Unauthorized
  */
 router.post('/logout', authenticate, logout);
+
+/**
+ * @swagger
+ * /api/auth/push-token:
+ *   patch:
+ *     tags:
+ *       - Authentication
+ *     summary: Update user's Expo Push Token for notifications
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - expoPushToken
+ *             properties:
+ *               expoPushToken:
+ *                 type: string
+ *                 description: Expo Push Token from device
+ *     responses:
+ *       200:
+ *         description: Push token updated successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch('/push-token', authenticate, updatePushToken);
+
+/**
+ * @swagger
+ * /api/auth/push-token:
+ *   delete:
+ *     tags:
+ *       - Authentication
+ *     summary: Remove user's Expo Push Token (on logout)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Push token removed successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete('/push-token', authenticate, removePushToken);
 
 export default router;

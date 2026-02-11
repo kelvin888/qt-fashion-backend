@@ -50,15 +50,16 @@ export const createCustomRequest = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate deadline (must be at least 3 days in the future)
+    // Validate deadline (must be at least 6 days: 3 days production + 3 days shipping)
     if (deadline) {
       const deadlineDate = new Date(deadline);
-      const threeDaysFromNow = new Date();
-      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+      const sixDaysFromNow = new Date();
+      sixDaysFromNow.setDate(sixDaysFromNow.getDate() + 6);
 
-      if (deadlineDate < threeDaysFromNow) {
+      if (deadlineDate < sixDaysFromNow) {
         return res.status(400).json({
-          error: 'Deadline must be at least 3 days from now',
+          error:
+            'Deadline must be at least 6 days from now to allow time for production and shipping',
         });
       }
     }
@@ -347,17 +348,29 @@ export const submitBid = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate completion date doesn't exceed request deadline
+    // Validate completion date allows 3-day shipping buffer before deadline
     if (customRequest.deadline) {
       const requestDeadline = new Date(customRequest.deadline);
-      if (completionDate > requestDeadline) {
+      const deliveryDate = new Date(completionDate);
+      deliveryDate.setDate(deliveryDate.getDate() + 3); // Add 3 days for shipping
+
+      if (deliveryDate > requestDeadline) {
+        const maxCompletionDate = new Date(requestDeadline);
+        maxCompletionDate.setDate(maxCompletionDate.getDate() - 3);
+
         const deadlineStr = requestDeadline.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
         });
+        const maxDateStr = maxCompletionDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+
         return res.status(400).json({
-          error: `Completion date cannot exceed the request deadline of ${deadlineStr}`,
+          error: `You must complete and ship by ${maxDateStr} to allow 3 days for delivery before the customer's deadline of ${deadlineStr}`,
         });
       }
     }

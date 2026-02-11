@@ -17,6 +17,7 @@ import customRequestRoutes from './routes/customRequest.routes';
 import payoutRoutes from './routes/payout.routes';
 import notificationRoutes from './routes/notification.routes';
 import { deadlineService } from './services/deadline.service';
+import { cronService } from './services/cron.service';
 
 // Load environment variables
 dotenv.config();
@@ -92,6 +93,23 @@ app.listen(PORT, () => {
       console.error('❌ Error in scheduled deadline monitoring:', err);
     });
   }, ONE_HOUR);
+
+  // Start cron jobs for escrow automation
+  console.log('⏰ Starting escrow automation cron jobs...');
+  cronService.start();
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  cronService.stop();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  cronService.stop();
+  process.exit(0);
 });
 
 export default app;

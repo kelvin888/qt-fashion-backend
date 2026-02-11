@@ -30,13 +30,25 @@ enum OfferStatus {
 }
 
 enum OrderStatus {
+  PENDING_PAYMENT // Awaiting payment from customer
+  PAYMENT_FAILED // Payment attempt failed
+  PAID // Payment received, money in escrow
+  IN_PRODUCTION // Designer is working on the order
+  READY_TO_SHIP // Production complete, ready to ship
+  SHIPPED // Tracking provided, in transit
+  DELIVERED // Tracking confirms delivery
+  AWAITING_CONFIRMATION // 10-day confirmation window active
+  COMPLETED // Customer confirmed or auto-confirmed, payment released
+  DISPUTED // Customer opened a dispute
+  REFUNDED // Money returned to customer
+  CANCELLED // Order cancelled before shipping
+  
+  // Legacy statuses (keep for backward compatibility)
   PENDING // Order created, awaiting production start
   SOURCING // Fabric sourcing in progress
   CONSTRUCTION // Garment construction in progress
   QUALITY_CHECK // Quality inspection
-  SHIPPING // Out for delivery
-  DELIVERED // Delivered to customer
-  CANCELLED // Order cancelled
+  SHIPPING // Out for delivery (use SHIPPED instead)
 }
 
 enum PaymentStatus {
@@ -91,6 +103,9 @@ model User {
 
   // Wallet for designers
   walletBalance Float @default(0)
+
+  // Push notification token for Expo
+  expoPushToken String?
 
   // Bank account details for payouts
   accountNumber   String?
@@ -237,11 +252,32 @@ model Order {
   progressNotes   String? // Designer's progress updates
 
   // Shipment tracking
-  carrier           String?
-  trackingNumber    String?
+  shippedAt         DateTime? // When designer marked as shipped
+  carrier           String? // Shipping carrier name (DHL, FedEx, etc.)
+  trackingNumber    String? // Required when marking shipped
   estimatedDelivery DateTime?
-  deliveredAt       DateTime?
+  deliveredAt       DateTime? // When tracking confirms delivery OR customer confirms
   deadline          DateTime? // Customer's expected delivery deadline
+
+  // Escrow & Delivery Confirmation
+  deliveryConfirmedBy     String? // "TRACKING" | "CUSTOMER" | "AUTO"
+  confirmationWindowStart DateTime? // When 10-day countdown starts
+  confirmationWindowEnd   DateTime? // When auto-confirm happens
+  autoConfirmAt           DateTime? // Calculated: deliveredAt + 10 days
+  
+  // Customer Actions
+  customerConfirmedAt DateTime? // When customer manually confirmed receipt
+  disputeOpenedAt     DateTime? // When customer opened dispute
+  disputeReason       String? // Why customer is disputing
+  disputeResolution   String? // Admin's resolution notes
+  
+  // Payment Release
+  paymentReleasedAt DateTime? // When designer received payment
+  paymentAmount     Float? // Amount released (after platform fees)
+  platformFee       Float? // Platform commission amount
+  
+  // Buyer Protection
+  buyerProtectionUntil DateTime? // 60 days from order creation
 
   // Customer feedback (after delivery)
   rating Int? // 1-5 star rating

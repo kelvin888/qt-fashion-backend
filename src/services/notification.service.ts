@@ -1,6 +1,8 @@
 import { PrismaClient, Notification } from '@prisma/client';
+import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 
 const prisma = new PrismaClient();
+const expo = new Expo();
 
 export interface CreateNotificationInput {
   userId: string;
@@ -8,6 +10,14 @@ export interface CreateNotificationInput {
   title: string;
   message: string;
   orderId?: string;
+  data?: Record<string, any>;
+}
+
+interface SendPushNotificationInput {
+  userId: string;
+  title: string;
+  message: string;
+  data?: Record<string, any>;
 }
 
 export class NotificationService {
@@ -132,6 +142,145 @@ export class NotificationService {
   async getUnreadCount(userId: string): Promise<number> {
     return prisma.notification.count({
       where: { userId, read: false },
+    });
+  }
+
+  /**
+   * Send push notification to user's device
+   */
+  async sendPushNotification(input: SendPushNotificationInput): Promise<void> {
+    try {
+      // Get user's push token
+      const user = await prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { expoPushToken: true },
+      });
+
+      if (!user?.expoPushToken || !Expo.isExpoPushToken(user.expoPushToken)) {
+        console.log(`User ${input.userId} has no valid push token, skipping push notification`);
+        return;
+      }
+
+      const message: ExpoPushMessage = {
+        to: user.expoPushToken,
+        sound: 'default',
+        title: input.title,
+        body: input.message,
+        data: input.data || {},
+      };
+
+      const chunks = expo.chunkPushNotifications([message]);
+      for (const chunk of chunks) {
+        try {
+          const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+          console.log('📲 Push notification sent:', ticketChunk);
+        } catch (error) {
+          console.error('Error sending push notification chunk:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in sendPushNotification:', error);
+      // Don't throw - push notification failure shouldn't break the flow
+    }
+  }
+
+  /**
+   * Create in-app notification AND send push notification
+   * This is the main method to use for all notifications
+   */
+  async notifyUser(data: CreateNotificationInput): Promise<Notification> {
+    // Create in-app notification
+    const notification = await this.createNotification(data);
+
+    // Send push notification asynchronously (don't wait)
+    this.sendPushNotification({
+      userId: data.userId,
+      title: data.title,
+      message: data.message,
+      data: data.data || { orderId: data.orderId },
+    }).catch((error) => {
+      console.error('Failed to send push notification:', error);
+    });
+
+    return notification;
+  }
+
+  /**
+   * Order lifecycle notification helpers
+   */
+
+  async notifyOrderShipped(order: any): Promise<void> {
+    await this.notifyUser({
+      userId: order.customerId,
+      type: 'ORDER_SHIPPED',
+      title: '📦 Order Shipped!',
+      message: `Your order #${order.orderNumber} has been shipped via ${order.carrier}. Tracking: ${order.trackingNumber}`,
+      orderId: order.id,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        trackingNumber: order.trackingNumber,
+        carrier: order.carrier,
+      },
+    });
+  }
+
+  async notifyOrderDelivered(order: any): Promise<void> {
+    await this.notifyUser({
+      userId: order.customerId,
+      type: 'ORDER_DELIVERED',
+      title: '✅ Order Delivered!',
+      message: `Your order #${order.orderNumber} has been delivered! Please confirm receipt within 10 days.`,
+      orderId: order.id,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+      },
+    });
+  }
+
+  async notifyPaymentReleased(order: any): Promise<void> {
+    await this.notifyUser({
+      userId: order.designerId,
+      type: 'PAYMENT_RELEASED',
+      title: '💰 Payment Released!',
+      message: `₦${order.paymentAmount?.toLocaleString()} has been deposited to your wallet for order #${order.orderNumber}`,
+      orderId: order.id,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        amount: order.paymentAmount,
+      },
+    });
+  }
+
+  async notifyDisputeOpened(order: any): Promise<void> {
+    await this.notifyUser({
+      userId: order.designerId,
+      type: 'DISPUTE_OPENED',
+      title: '⚠️ Dispute Opened',
+      message: `Customer opened a dispute for order #${order.orderNumber}. Please respond promptly.`,
+      orderId: order.id,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        reason: order.disputeReason,
+      },
+    });
+  }
+
+  async notifyAutoConfirmSoon(order: any, hoursRemaining: number): Promise<void> {
+    await this.notifyUser({
+      userId: order.customerId,
+      type: 'AUTO_CONFIRM_WARNING',
+      title: '⏰ Auto-Confirm Soon',
+      message: `Order #${order.orderNumber} will be auto-confirmed in ${hoursRemaining} hours. Confirm receipt or open dispute if there's an issue.`,
+      orderId: order.id,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        hoursRemaining,
+      },
     });
   }
 }

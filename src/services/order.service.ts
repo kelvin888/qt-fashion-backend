@@ -7,6 +7,7 @@
 import prisma from '../config/database';
 import { Order, OrderStatus } from '@prisma/client';
 import walletService from './wallet.service';
+import { notificationService } from './notification.service';
 
 interface ProductionStep {
   step: string;
@@ -101,6 +102,10 @@ class OrderService {
       })
     );
 
+    // Set buyer protection until 60 days from now
+    const buyerProtectionUntil = new Date();
+    buyerProtectionUntil.setDate(buyerProtectionUntil.getDate() + 60);
+
     const order = await prisma.order.create({
       data: {
         orderNumber,
@@ -113,6 +118,7 @@ class OrderService {
         status: 'PENDING',
         productionSteps: productionSteps as any,
         deadline: data.deadline || null,
+        buyerProtectionUntil,
       },
       include: {
         customer: {
@@ -651,13 +657,20 @@ class OrderService {
       throw new Error('Order not found or access denied');
     }
 
+    // Validate tracking number format
+    const trimmedTracking = data.trackingNumber.trim();
+    if (trimmedTracking.length < 5) {
+      throw new Error('Tracking number must be at least 5 characters');
+    }
+
     const order = await prisma.order.update({
       where: { id: orderId },
       data: {
         carrier: data.carrier,
         trackingNumber: data.trackingNumber,
         estimatedDelivery: data.estimatedDelivery,
-        status: 'SHIPPING',
+        shippedAt: new Date(),
+        status: 'SHIPPED',
       },
       include: {
         customer: {
@@ -688,12 +701,174 @@ class OrderService {
       },
     });
 
+    // Notify customer that order has been shipped
+    await notificationService.notifyOrderShipped(order);
+
     return order;
   }
 
   /**
-   * Confirm delivery (customer only)
-   * Marks order as delivered and releases payment from escrow
+   * Customer confirms receipt (starts 10-day auto-confirm countdown)
+   * Can be called early to release payment immediately
+   */
+  async confirmReceipt(orderId: string, userId: string, data: ConfirmDeliveryData): Promise<Order> {
+    // Verify customer owns this order
+    const existing = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        customerId: userId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Order not found or access denied');
+    }
+
+    // Can confirm if order is SHIPPED or DELIVERED
+    if (
+      existing.status !== 'SHIPPED' &&
+      existing.status !== 'DELIVERED' &&
+      existing.status !== 'AWAITING_CONFIRMATION'
+    ) {
+      throw new Error('Order must be shipped or delivered to confirm receipt');
+    }
+
+    // Calculate platform fee (10%)
+    const platformFee = existing.finalPrice * 0.1;
+    const paymentAmount = existing.finalPrice - platformFee;
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: 'COMPLETED',
+        deliveredAt: existing.deliveredAt || new Date(),
+        deliveryConfirmedBy: 'CUSTOMER',
+        customerConfirmedAt: new Date(),
+        paymentReleasedAt: new Date(),
+        paymentAmount,
+        platformFee,
+        rating: data.rating,
+        review: data.review,
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profileImage: true,
+          },
+        },
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            brandLogo: true,
+            email: true,
+          },
+        },
+        design: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
+            category: true,
+          },
+        },
+      },
+    });
+
+    // Release payment to designer's wallet
+    await walletService.creditWallet({
+      userId: order.designerId,
+      amount: paymentAmount,
+      description: `Payment for order ${order.orderNumber} - ${order.design.title}`,
+      orderId: order.id,
+    });
+
+    console.log(
+      `💸 Payment of ₦${paymentAmount.toLocaleString()} released to designer ${order.designer.fullName || order.designer.brandName} (after ₦${platformFee.toLocaleString()} platform fee)`
+    );
+
+    // Notify designer that payment has been released
+    await notificationService.notifyPaymentReleased(order);
+
+    return order;
+  }
+
+  /**
+   * Customer opens dispute
+   */
+  async openDispute(orderId: string, userId: string, reason: string): Promise<Order> {
+    // Verify customer owns this order
+    const existing = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        customerId: userId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Order not found or access denied');
+    }
+
+    // Check buyer protection period (60 days from creation)
+    const protectionExpired =
+      existing.buyerProtectionUntil && new Date() > existing.buyerProtectionUntil;
+    if (protectionExpired) {
+      throw new Error('Buyer protection period has expired');
+    }
+
+    if (!reason || reason.trim().length < 10) {
+      throw new Error('Please provide a detailed reason for the dispute (at least 10 characters)');
+    }
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: 'DISPUTED',
+        disputeOpenedAt: new Date(),
+        disputeReason: reason.trim(),
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            profileImage: true,
+          },
+        },
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            brandLogo: true,
+            email: true,
+          },
+        },
+        design: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
+            category: true,
+          },
+        },
+      },
+    });
+
+    // Notify designer that a dispute was opened
+    await notificationService.notifyDisputeOpened(order);
+
+    return order;
+  }
+
+  /**
+   * Confirm delivery (customer only) - LEGACY METHOD
+   * Use confirmReceipt instead for new escrow flow
    */
   async confirmDelivery(
     orderId: string,

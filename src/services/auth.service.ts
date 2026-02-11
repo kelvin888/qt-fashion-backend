@@ -182,6 +182,20 @@ class AuthService {
 
     return user;
   }
+
+  async updatePushToken(userId: string, expoPushToken: string) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { expoPushToken },
+    });
+  }
+
+  async removePushToken(userId: string) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { expoPushToken: null },
+    });
+  }
 }
 
 export default new AuthService();
