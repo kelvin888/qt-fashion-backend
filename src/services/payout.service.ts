@@ -127,7 +127,7 @@ export class PayoutService {
     try {
       console.log('🔐 [AUTH] Requesting new access token');
       console.log('🔐 [AUTH] Token URL:', `${this.apiBaseUrl}/oauth/token`);
-      
+
       const authString = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
       console.log('🔐 [AUTH] Using Basic Auth with clientId:', this.clientId);
 
@@ -146,7 +146,7 @@ export class PayoutService {
 
       console.log('✅ [AUTH] Successfully retrieved access token');
       console.log('🔐 [AUTH] Token expires in:', response.data.expires_in, 'seconds');
-      
+
       this.accessToken = response.data.access_token;
       // Set expiry to 5 minutes before actual expiry for safety
       this.tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
@@ -194,17 +194,14 @@ export class PayoutService {
         bankCode: bankCode,
       });
 
-      const response = await axios.get(
-        url,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            accountId: accountNumber,
-            bankCode: bankCode,
-          },
-          timeout: 15000,
-        }
-      );
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accountId: accountNumber,
+          bankCode: bankCode,
+        },
+        timeout: 15000,
+      });
 
       console.log('🔍 [NAME ENQUIRY] Response status:', response.status);
       console.log('🔍 [NAME ENQUIRY] Response headers:', response.headers);
@@ -247,10 +244,7 @@ export class PayoutService {
         data?.message ||
         data?.responseDescription ||
         'Failed to verify bank account';
-      console.error(
-        '❌ [NAME ENQUIRY] No account name found in response. Error message:',
-        message
-      );
+      console.error('❌ [NAME ENQUIRY] No account name found in response. Error message:', message);
       throw new Error(message);
     } catch (error) {
       console.error('❌ [NAME ENQUIRY] Error occurred during bank account lookup');
