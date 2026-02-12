@@ -345,14 +345,6 @@ export const submitBid = async (req: Request, res: Response) => {
     const addDaysUtc = (date: Date, days: number) =>
       new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 
-    const formatUtcDay = (date: Date) =>
-      new Intl.DateTimeFormat('en-US', {
-        timeZone: 'UTC',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }).format(date);
-
     // Validate completion date is at least 3 days from now
     const completionDay = utcStartOfDay(completionDate);
     const minCompletionDay = addDaysUtc(utcStartOfDay(new Date()), 3);
@@ -362,37 +354,13 @@ export const submitBid = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate completion date allows 3-day shipping buffer before deadline
+    // Infer whether the bid meets the customer's deadline based on the proposed completion date.
+    // We keep (but do not require) the canMeetDeadline field for backwards compatibility.
+    let computedCanMeetDeadline: boolean | null = null;
     if (customRequest.deadline) {
       const requestDeadlineDay = utcStartOfDay(new Date(customRequest.deadline));
       const deliveryDay = addDaysUtc(completionDay, 3); // Add 3 days for shipping
-
-      if (deliveryDay.getTime() > requestDeadlineDay.getTime()) {
-        const maxCompletionDay = addDaysUtc(requestDeadlineDay, -3);
-
-        const deadlineStr = formatUtcDay(requestDeadlineDay);
-        const maxDateStr = formatUtcDay(maxCompletionDay);
-
-        return res.status(400).json({
-          error: `You must complete and ship by ${maxDateStr} to allow 3 days for delivery before the customer's deadline of ${deadlineStr}`,
-        });
-      }
-    }
-
-    // If request has a deadline, designer must explicitly indicate they can meet it
-    if (customRequest.deadline) {
-      if (canMeetDeadline === undefined) {
-        return res.status(400).json({
-          error:
-            'This request has a deadline. You must indicate if you can meet it by providing canMeetDeadline field',
-        });
-      }
-
-      if (canMeetDeadline === false) {
-        return res.status(400).json({
-          error: "You can't submit a bid if you can't meet the customer's deadline",
-        });
-      }
+      computedCanMeetDeadline = deliveryDay.getTime() <= requestDeadlineDay.getTime();
     }
 
     // Check if designer already submitted a bid
@@ -418,7 +386,7 @@ export const submitBid = async (req: Request, res: Response) => {
         timeline,
         pitch,
         portfolioImages: portfolioImages || [],
-        canMeetDeadline: canMeetDeadline ?? null,
+        canMeetDeadline: computedCanMeetDeadline,
         deadlineNotes: deadlineNotes || null,
       },
       include: {
@@ -459,11 +427,11 @@ export const getBidsForRequest = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Custom request not found' });
     }
 
-    // If request has a deadline, only show bids where designer can meet it
     const where: any = { requestId };
-    if (customRequest.deadline) {
-      where.canMeetDeadline = true;
-    }
+
+    const orderBy: any = customRequest.deadline
+      ? [{ canMeetDeadline: 'desc' }, { createdAt: 'desc' }]
+      : { createdAt: 'desc' };
 
     const bids = await prisma.customRequestBid.findMany({
       where,
@@ -479,7 +447,7 @@ export const getBidsForRequest = async (req: Request, res: Response) => {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
     });
 
     res.json(bids);
@@ -527,6 +495,29 @@ export const acceptBid = async (req: Request, res: Response) => {
 
     if (!bid || bid.requestId !== requestId) {
       return res.status(404).json({ error: 'Bid not found' });
+    }
+
+    // For custom requests with a deadline, treat Offer.deadline as the expected delivery date
+    // (completion date + 3 days shipping) for the accepted bid.
+    let offerDeadline: Date | null = customRequest.deadline
+      ? new Date(customRequest.deadline)
+      : null;
+    if (customRequest.deadline) {
+      const bidCompletionDate = new Date(bid.timeline);
+      if (!isNaN(bidCompletionDate.getTime())) {
+        const completionDayUtc = new Date(
+          Date.UTC(
+            bidCompletionDate.getUTCFullYear(),
+            bidCompletionDate.getUTCMonth(),
+            bidCompletionDate.getUTCDate(),
+            0,
+            0,
+            0,
+            0
+          )
+        );
+        offerDeadline = new Date(completionDayUtc.getTime() + 3 * 24 * 60 * 60 * 1000);
+      }
     }
 
     // Update in transaction: accept bid, reject others, update request status
@@ -624,8 +615,7 @@ export const acceptBid = async (req: Request, res: Response) => {
           notes: offerNotes,
           designerNotes: acceptedBid.pitch,
           acceptedAt: new Date(),
-          // Store deadline in offer notes so it can be used when creating order
-          deadline: customRequest.deadline,
+          deadline: offerDeadline,
         },
         include: {
           design: {
