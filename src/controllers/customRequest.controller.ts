@@ -339,10 +339,24 @@ export const submitBid = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid completion date format' });
     }
 
+    const utcStartOfDay = (date: Date) =>
+      new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+
+    const addDaysUtc = (date: Date, days: number) =>
+      new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+
+    const formatUtcDay = (date: Date) =>
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(date);
+
     // Validate completion date is at least 3 days from now
-    const threeDaysFromNow = new Date();
-    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-    if (completionDate < threeDaysFromNow) {
+    const completionDay = utcStartOfDay(completionDate);
+    const minCompletionDay = addDaysUtc(utcStartOfDay(new Date()), 3);
+    if (completionDay.getTime() < minCompletionDay.getTime()) {
       return res.status(400).json({
         error: 'Completion date must be at least 3 days from now',
       });
@@ -350,24 +364,14 @@ export const submitBid = async (req: Request, res: Response) => {
 
     // Validate completion date allows 3-day shipping buffer before deadline
     if (customRequest.deadline) {
-      const requestDeadline = new Date(customRequest.deadline);
-      const deliveryDate = new Date(completionDate);
-      deliveryDate.setDate(deliveryDate.getDate() + 3); // Add 3 days for shipping
+      const requestDeadlineDay = utcStartOfDay(new Date(customRequest.deadline));
+      const deliveryDay = addDaysUtc(completionDay, 3); // Add 3 days for shipping
 
-      if (deliveryDate > requestDeadline) {
-        const maxCompletionDate = new Date(requestDeadline);
-        maxCompletionDate.setDate(maxCompletionDate.getDate() - 3);
+      if (deliveryDay.getTime() > requestDeadlineDay.getTime()) {
+        const maxCompletionDay = addDaysUtc(requestDeadlineDay, -3);
 
-        const deadlineStr = requestDeadline.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
-        const maxDateStr = maxCompletionDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
+        const deadlineStr = formatUtcDay(requestDeadlineDay);
+        const maxDateStr = formatUtcDay(maxCompletionDay);
 
         return res.status(400).json({
           error: `You must complete and ship by ${maxDateStr} to allow 3 days for delivery before the customer's deadline of ${deadlineStr}`,
