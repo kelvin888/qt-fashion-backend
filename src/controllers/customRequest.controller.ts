@@ -380,11 +380,19 @@ export const submitBid = async (req: Request, res: Response) => {
     }
 
     // If request has a deadline, designer must explicitly indicate they can meet it
-    if (customRequest.deadline && canMeetDeadline === undefined) {
-      return res.status(400).json({
-        error:
-          'This request has a deadline. You must indicate if you can meet it by providing canMeetDeadline field',
-      });
+    if (customRequest.deadline) {
+      if (canMeetDeadline === undefined) {
+        return res.status(400).json({
+          error:
+            'This request has a deadline. You must indicate if you can meet it by providing canMeetDeadline field',
+        });
+      }
+
+      if (canMeetDeadline === false) {
+        return res.status(400).json({
+          error: "You can't submit a bid if you can't meet the customer's deadline",
+        });
+      }
     }
 
     // Check if designer already submitted a bid
