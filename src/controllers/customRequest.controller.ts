@@ -194,6 +194,7 @@ export const getMyCustomRequests = async (req: Request, res: Response) => {
 export const getCustomRequestById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
 
     const customRequest = await prisma.customRequest.findUnique({
       where: { id },
@@ -227,7 +228,26 @@ export const getCustomRequestById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Custom request not found' });
     }
 
-    res.json(customRequest);
+    // If the requesting user is the owning customer, include a paymentOfferId so
+    // the client can continue payment after accepting a bid.
+    let paymentOfferId: string | null = null;
+    if (userId && customRequest.customerId === userId) {
+      const offer = await prisma.offer.findFirst({
+        where: {
+          customerId: userId,
+          notes: { startsWith: `CUSTOM_REQUEST_ID:${id}` },
+        },
+        select: { id: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      paymentOfferId = offer?.id ?? null;
+    }
+
+    res.json({
+      ...customRequest,
+      paymentOfferId,
+    });
   } catch (error: any) {
     console.error('Error fetching custom request:', error);
     res.status(500).json({ error: 'Failed to fetch custom request' });
