@@ -33,6 +33,7 @@ export interface AuthResponse {
     fullName: string;
     phoneNumber: string | null;
     role: string;
+    gender?: string | null;
     profileImage: string | null;
     brandName: string | null;
     brandLogo: string | null;
@@ -105,6 +106,7 @@ class AuthService {
         fullName: user.fullName,
         phoneNumber: user.phoneNumber,
         role: user.role.toLowerCase(),
+        gender: user.gender,
         profileImage: user.profileImage,
         brandName: user.brandName,
         brandLogo: user.brandLogo,
@@ -151,6 +153,7 @@ class AuthService {
         fullName: user.fullName,
         phoneNumber: user.phoneNumber,
         role: user.role.toLowerCase(),
+        gender: user.gender,
         profileImage: user.profileImage,
         brandName: user.brandName,
         brandLogo: user.brandLogo,
@@ -172,6 +175,7 @@ class AuthService {
         fullName: true,
         phoneNumber: true,
         role: true,
+        gender: true,
         profileImage: true,
         brandName: true,
         brandLogo: true,
