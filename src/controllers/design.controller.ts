@@ -158,10 +158,7 @@ export const getRelatedDesigns = async (req: Request, res: Response, next: NextF
     const { id } = req.params;
     const { limit = '8' } = req.query;
 
-    const relatedDesigns = await designService.getRelatedDesigns(
-      id,
-      parseInt(limit as string)
-    );
+    const relatedDesigns = await designService.getRelatedDesigns(id, parseInt(limit as string));
 
     res.status(200).json(relatedDesigns);
   } catch (error: any) {

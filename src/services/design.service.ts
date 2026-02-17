@@ -279,8 +279,11 @@ class DesignService {
       }
 
       // Fabric type match (+1 point)
-      if (design.fabricType && currentDesign.fabricType && 
-          design.fabricType.toLowerCase() === currentDesign.fabricType.toLowerCase()) {
+      if (
+        design.fabricType &&
+        currentDesign.fabricType &&
+        design.fabricType.toLowerCase() === currentDesign.fabricType.toLowerCase()
+      ) {
         score += 1;
       }
 
