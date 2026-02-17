@@ -161,6 +161,88 @@ router.put('/:id/reject', requireRole('DESIGNER'), offerController.rejectOffer);
 
 /**
  * @swagger
+ * /api/offers/{id}/customer-counter:
+ *   put:
+ *     tags:
+ *       - Offers
+ *     summary: Customer makes counter offer (Customer only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - customerPrice
+ *             properties:
+ *               customerPrice:
+ *                 type: number
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Counter offer sent
+ *       403:
+ *         description: Customer role required
+ */
+router.put('/:id/customer-counter', requireRole('CUSTOMER'), offerController.customerCounterOffer);
+
+/**
+ * @swagger
+ * /api/offers/{id}/accept-counter:
+ *   put:
+ *     tags:
+ *       - Offers
+ *     summary: Customer accepts designer's counter offer (Customer only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Counter offer accepted
+ *       403:
+ *         description: Customer role required
+ */
+router.put('/:id/accept-counter', requireRole('CUSTOMER'), offerController.acceptCounterOffer);
+
+/**
+ * @swagger
+ * /api/offers/{id}/decline-counter:
+ *   put:
+ *     tags:
+ *       - Offers
+ *     summary: Customer declines designer's counter offer (Customer only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Counter offer declined
+ *       403:
+ *         description: Customer role required
+ */
+router.put('/:id/decline-counter', requireRole('CUSTOMER'), offerController.declineCounterOffer);
+
+/**
+ * @swagger
  * /api/offers:
  *   get:
  *     tags:

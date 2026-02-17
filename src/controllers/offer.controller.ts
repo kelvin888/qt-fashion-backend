@@ -111,6 +111,54 @@ export const counterOffer = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+export const customerCounterOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { customerPrice, notes } = req.body;
+
+    if (!customerPrice) {
+      return res.status(400).json({
+        message: 'Missing required field: customerPrice',
+      });
+    }
+
+    const offer = await offerService.customerCounterOffer(
+      id,
+      req.user!.id,
+      parseFloat(customerPrice),
+      notes
+    );
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const acceptCounterOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const offer = await offerService.acceptCounterOffer(id, req.user!.id);
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+export const declineCounterOffer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const offer = await offerService.declineCounterOffer(id, req.user!.id);
+
+    res.status(200).json(offer);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 export const rejectOffer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;

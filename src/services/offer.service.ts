@@ -236,7 +236,12 @@ class OfferService {
       where: { id: offerId },
       data: {
         status: OfferStatus.ACCEPTED,
-        finalPrice: offer.designerPrice || offer.customerPrice,
+        // If designer is accepting a customer counter (COUNTERED status), use customer price
+        // Otherwise use designer's counter price or original customer price
+        finalPrice:
+          offer.status === OfferStatus.COUNTERED && !offer.designerPrice
+            ? offer.customerPrice
+            : offer.designerPrice || offer.customerPrice,
         acceptedAt: new Date(),
       },
       include: {
@@ -312,6 +317,181 @@ class OfferService {
             brandName: true,
           },
         },
+        design: true,
+      },
+    });
+
+    return updatedOffer;
+  }
+
+  /**
+   * Customer counter offer (Customer makes counter offer to designer's counter)
+   */
+  async customerCounterOffer(
+    offerId: string,
+    customerId: string,
+    newPrice: number,
+    notes?: string
+  ) {
+    const offer = await prisma.offer.findUnique({
+      where: { id: offerId },
+    });
+
+    if (!offer) {
+      throw new Error('Offer not found');
+    }
+
+    if (offer.customerId !== customerId) {
+      throw new Error('Unauthorized to counter this offer');
+    }
+
+    if (offer.status !== OfferStatus.COUNTERED) {
+      throw new Error(
+        `Cannot counter offer with status: ${offer.status}. Offer must have a designer counter first.`
+      );
+    }
+
+    // Check if expired
+    if (offer.expiresAt && offer.expiresAt < new Date()) {
+      await prisma.offer.update({
+        where: { id: offerId },
+        data: { status: OfferStatus.EXPIRED },
+      });
+      throw new Error('Offer has expired');
+    }
+
+    const updatedOffer = await prisma.offer.update({
+      where: { id: offerId },
+      data: {
+        status: OfferStatus.COUNTERED,
+        customerPrice: newPrice,
+        notes: notes || offer.notes,
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+          },
+        },
+        design: true,
+      },
+    });
+
+    return updatedOffer;
+  }
+
+  /**
+   * Customer accepts designer's counter offer
+   */
+  async acceptCounterOffer(offerId: string, customerId: string) {
+    const offer = await prisma.offer.findUnique({
+      where: { id: offerId },
+      include: { design: { select: { productionSteps: true } } },
+    });
+
+    if (!offer) {
+      throw new Error('Offer not found');
+    }
+
+    if (offer.customerId !== customerId) {
+      throw new Error('Unauthorized to accept this offer');
+    }
+
+    if (offer.status !== OfferStatus.COUNTERED) {
+      throw new Error(`Cannot accept counter offer with status: ${offer.status}`);
+    }
+
+    if (!offer.designerPrice) {
+      throw new Error('No designer counter offer to accept');
+    }
+
+    // Check if expired
+    if (offer.expiresAt && offer.expiresAt < new Date()) {
+      await prisma.offer.update({
+        where: { id: offerId },
+        data: { status: OfferStatus.EXPIRED },
+      });
+      throw new Error('Offer has expired');
+    }
+
+    // ✅ Validate production steps BEFORE updating offer status
+    if (
+      !offer.design?.productionSteps ||
+      !Array.isArray(offer.design.productionSteps) ||
+      offer.design.productionSteps.length === 0
+    ) {
+      throw new Error(
+        'This design has no production steps defined. Please contact the designer to add production workflow before placing an order.'
+      );
+    }
+
+    // Accept at designer's price
+    const updatedOffer = await prisma.offer.update({
+      where: { id: offerId },
+      data: {
+        status: OfferStatus.ACCEPTED,
+        finalPrice: offer.designerPrice,
+        acceptedAt: new Date(),
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+          },
+        },
+        design: true,
+      },
+    });
+
+    return updatedOffer;
+  }
+
+  /**
+   * Customer declines designer's counter offer (ends negotiation)
+   */
+  async declineCounterOffer(offerId: string, customerId: string) {
+    const offer = await prisma.offer.findUnique({
+      where: { id: offerId },
+    });
+
+    if (!offer) {
+      throw new Error('Offer not found');
+    }
+
+    if (offer.customerId !== customerId) {
+      throw new Error('Unauthorized to decline this offer');
+    }
+
+    if (offer.status !== OfferStatus.COUNTERED) {
+      throw new Error(`Cannot decline offer with status: ${offer.status}`);
+    }
+
+    const updatedOffer = await prisma.offer.update({
+      where: { id: offerId },
+      data: {
+        status: OfferStatus.REJECTED,
+      },
+      include: {
+        customer: true,
+        designer: true,
         design: true,
       },
     });
