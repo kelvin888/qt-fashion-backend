@@ -271,7 +271,9 @@ class DesignService {
 
     // STRATEGY 2: If no different designer designs, fetch from same category (including same designer)
     if (candidates.length === 0) {
-      console.log(`No designs from different designers, fetching same category for design ${designId}`);
+      console.log(
+        `No designs from different designers, fetching same category for design ${designId}`
+      );
       candidates = await prisma.design.findMany({
         where: {
           category: currentDesign.category,
@@ -398,9 +400,11 @@ class DesignService {
 
     // Return top N designs
     const results = scoredDesigns.slice(0, limit).map((item) => item.design);
-    
-    console.log(`Related designs for ${designId}: ${results.length} found (from ${candidates.length} candidates)`);
-    
+
+    console.log(
+      `Related designs for ${designId}: ${results.length} found (from ${candidates.length} candidates)`
+    );
+
     return results;
   }
 
