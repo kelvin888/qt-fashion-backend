@@ -10,6 +10,7 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
       fullName,
       phoneNumber,
       role,
+      gender,
       // Designer-specific fields
       brandName,
       brandLogo,
@@ -59,6 +60,7 @@ export const signup = async (req: Request, res: Response, next: NextFunction) =>
       fullName,
       phoneNumber,
       role,
+      gender,
       brandName,
       brandLogo,
       brandBanner,

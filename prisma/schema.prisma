@@ -84,6 +84,13 @@ enum MeasurementCaptureMethod {
   MANUAL // Manually entered by user
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 // Note: Category is now a String field (not enum) to allow dynamic categories
 // without requiring database migrations. Frontend can add new categories anytime.
 
@@ -98,6 +105,7 @@ model User {
   fullName    String   @default("")
   phoneNumber String?
   role        UserRole @default(CUSTOMER)
+  gender      Gender?
 
   // Optional designer fields
   profileImage String?
@@ -319,8 +327,14 @@ model BodyMeasurement {
   userId String
   user   User   @relation("UserMeasurements", fields: [userId], references: [id], onDelete: Cascade)
 
-  // Measurements in cm
-  chest     Float
+  // Gender-specific measurements (in cm)
+  // For women: bust and underbust
+  bust      Float? // Fullest part of bust (for women)
+  underbust Float? // Under bust, around ribcage (for women)
+  // For men: chest
+  chest     Float? // Across chest at nipple level (for men)
+
+  // Universal measurements (in cm)
   waist     Float
   hips      Float
   height    Float

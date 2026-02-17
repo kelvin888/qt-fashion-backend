@@ -73,7 +73,11 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
     const {
       frontPhoto,
       sidePhoto,
+      // Gender-specific measurements
+      bust,
+      underbust,
       chest,
+      // Universal measurements
       waist,
       hips,
       height,
@@ -84,11 +88,19 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
       captureMethod = 'PHOTO', // Default to PHOTO if not specified
     } = req.body;
 
-    // Validate required measurement fields
-    if (!chest || !waist || !hips || !height || !shoulder || !armLength || !inseam || !neck) {
+    // Validate required universal measurement fields
+    if (!waist || !hips || !height || !shoulder || !armLength || !inseam || !neck) {
       return res.status(400).json({
         success: false,
         message: 'Missing required measurement fields',
+      });
+    }
+
+    // Validate gender-specific measurements (either chest OR bust must be provided)
+    if (!chest && !bust) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either chest (for men) or bust (for women) measurement is required',
       });
     }
 
@@ -105,6 +117,8 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
       userId,
       frontPhoto,
       sidePhoto,
+      bust,
+      underbust,
       chest,
       waist,
       hips,

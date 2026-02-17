@@ -112,7 +112,11 @@ class UserService {
     userId: string;
     frontPhoto?: string;
     sidePhoto?: string;
-    chest: number;
+    // Gender-specific measurements
+    bust?: number; // For women
+    underbust?: number; // For women
+    chest?: number; // For men
+    // Universal measurements
     waist: number;
     hips: number;
     height: number;
@@ -180,7 +184,11 @@ class UserService {
         userId: data.userId,
         frontPhoto: data.frontPhoto || null,
         sidePhoto: data.sidePhoto || null,
-        chest: data.chest,
+        // Gender-specific measurements
+        bust: data.bust || null,
+        underbust: data.underbust || null,
+        chest: data.chest || null,
+        // Universal measurements
         waist: data.waist,
         hips: data.hips,
         height: data.height,

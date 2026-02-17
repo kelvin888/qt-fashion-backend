@@ -11,6 +11,7 @@ export interface SignupData {
   fullName: string;
   phoneNumber?: string;
   role: 'customer' | 'designer';
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
   // Designer-specific fields
   brandName?: string;
   brandLogo?: string;
@@ -67,6 +68,7 @@ class AuthService {
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
       role: data.role.toUpperCase() === 'DESIGNER' ? UserRole.DESIGNER : UserRole.CUSTOMER,
+      gender: data.gender || null,
     };
 
     // Add designer-specific fields if role is designer
