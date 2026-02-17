@@ -153,6 +153,22 @@ export const deleteDesign = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+export const getRelatedDesigns = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { limit = '8' } = req.query;
+
+    const relatedDesigns = await designService.getRelatedDesigns(
+      id,
+      parseInt(limit as string)
+    );
+
+    res.status(200).json(relatedDesigns);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 export const getDesigners = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { search, sortBy } = req.query;

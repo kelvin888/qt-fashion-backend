@@ -66,6 +66,41 @@ router.get('/', designController.getDesigns);
 
 /**
  * @swagger
+ * /api/designs/{id}/related:
+ *   get:
+ *     tags:
+ *       - Designs
+ *     summary: Get related designs (public)
+ *     description: Returns designs similar to the specified design based on category, price, fabric type, and colors
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Design ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 8
+ *         description: Number of related designs to return
+ *     responses:
+ *       200:
+ *         description: List of related designs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Design'
+ *       404:
+ *         description: Design not found
+ */
+router.get('/:id/related', designController.getRelatedDesigns);
+
+/**
+ * @swagger
  * /api/designs/{id}:
  *   get:
  *     tags:

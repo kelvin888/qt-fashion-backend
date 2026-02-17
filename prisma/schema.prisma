@@ -186,6 +186,7 @@ model Design {
 
   @@index([designerId])
   @@index([category])
+  @@index([category, price])
   @@map("designs")
 }
 

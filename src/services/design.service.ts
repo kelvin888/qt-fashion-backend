@@ -227,6 +227,95 @@ class DesignService {
     return { message: 'Design deleted successfully' };
   }
 
+  async getRelatedDesigns(designId: string, limit = 8) {
+    // Get the current design
+    const currentDesign = await prisma.design.findUnique({
+      where: { id: designId },
+      select: {
+        id: true,
+        category: true,
+        price: true,
+        fabricType: true,
+        colors: true,
+        designerId: true,
+      },
+    });
+
+    if (!currentDesign) {
+      throw new Error('Design not found');
+    }
+
+    // Calculate price range (±20%)
+    const priceMin = currentDesign.price * 0.8;
+    const priceMax = currentDesign.price * 1.2;
+
+    // Fetch candidate designs: same category, different designer
+    const candidates = await prisma.design.findMany({
+      where: {
+        category: currentDesign.category,
+        designerId: { not: currentDesign.designerId },
+        id: { not: designId },
+      },
+      include: {
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            brandLogo: true,
+          },
+        },
+      },
+      take: 50, // Fetch more candidates for better scoring
+    });
+
+    // Score each candidate
+    const scoredDesigns = candidates.map((design) => {
+      let score = 0;
+
+      // Price within ±20% range (+2 points)
+      if (design.price >= priceMin && design.price <= priceMax) {
+        score += 2;
+      }
+
+      // Fabric type match (+1 point)
+      if (design.fabricType && currentDesign.fabricType && 
+          design.fabricType.toLowerCase() === currentDesign.fabricType.toLowerCase()) {
+        score += 1;
+      }
+
+      // Color overlap (+1 point)
+      if (design.colors.length > 0 && currentDesign.colors.length > 0) {
+        const hasColorOverlap = design.colors.some((color) =>
+          currentDesign.colors.some(
+            (currentColor) => color.toLowerCase() === currentColor.toLowerCase()
+          )
+        );
+        if (hasColorOverlap) {
+          score += 1;
+        }
+      }
+
+      // Featured designs (+1 point)
+      if (design.featured) {
+        score += 1;
+      }
+
+      return { design, score };
+    });
+
+    // Sort by score DESC, then by views DESC
+    scoredDesigns.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      return b.design.views - a.design.views;
+    });
+
+    // Return top N designs
+    return scoredDesigns.slice(0, limit).map((item) => item.design);
+  }
+
   async getDesigners(
     filters: { search?: string; sortBy?: 'most-designs' | 'newest' | 'a-z' } = {}
   ) {
