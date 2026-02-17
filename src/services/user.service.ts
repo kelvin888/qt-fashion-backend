@@ -14,6 +14,7 @@ class UserService {
         id: true,
         fullName: true,
         role: true,
+        gender: true,
         profileImage: true,
         brandName: true,
         brandLogo: true,
