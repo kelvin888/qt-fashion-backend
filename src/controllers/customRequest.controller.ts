@@ -32,9 +32,9 @@ export const createCustomRequest = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate measurements (must have all 8 required fields)
-    const requiredMeasurements = [
-      'chest',
+    // Validate measurements
+    // Universal measurements required for all users
+    const universalMeasurements = [
       'waist',
       'hips',
       'height',
@@ -43,10 +43,18 @@ export const createCustomRequest = async (req: Request, res: Response) => {
       'inseam',
       'neck',
     ];
-    const missingMeasurements = requiredMeasurements.filter((m) => !measurements[m]);
-    if (missingMeasurements.length > 0) {
+
+    const missingUniversalMeasurements = universalMeasurements.filter((m) => !measurements[m]);
+    if (missingUniversalMeasurements.length > 0) {
       return res.status(400).json({
-        error: `Missing required measurements: ${missingMeasurements.join(', ')}`,
+        error: `Missing required measurements: ${missingUniversalMeasurements.join(', ')}`,
+      });
+    }
+
+    // Validate torso measurements (either chest OR bust must be provided)
+    if (!measurements.chest && !measurements.bust) {
+      return res.status(400).json({
+        error: 'Either chest or bust measurement is required',
       });
     }
 

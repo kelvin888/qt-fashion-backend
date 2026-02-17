@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import userService from '../services/user.service';
+import { validateMeasurement, getRequiredTorsoMeasurements } from '../utils/measurementStandards';
+import { Gender } from '@prisma/client';
 
 export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -96,12 +98,60 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
       });
     }
 
-    // Validate gender-specific measurements (either chest OR bust must be provided)
-    if (!chest && !bust) {
-      return res.status(400).json({
-        success: false,
-        message: 'Either chest (for men) or bust (for women) measurement is required',
-      });
+    // Get user's gender for gender-specific validation
+    const user = await userService.getUserById(userId);
+    const userGender: Gender = user.gender || 'OTHER';
+
+    // Validate gender-specific torso measurements
+    if (userGender === 'MALE') {
+      if (!chest) {
+        return res.status(400).json({
+          success: false,
+          message: 'Chest measurement is required for male users',
+        });
+      }
+    } else if (userGender === 'FEMALE') {
+      if (!bust) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bust measurement is required for female users',
+        });
+      }
+      // Underbust is optional but recommended for women
+    } else {
+      // For OTHER or PREFER_NOT_TO_SAY, require at least one torso measurement
+      if (!chest && !bust) {
+        return res.status(400).json({
+          success: false,
+          message: 'Either chest or bust measurement is required',
+        });
+      }
+    }
+
+    // Validate measurements against ISO 8559-1:2017 standards
+    const measurementsToValidate = {
+      height,
+      ...(chest && { chest }),
+      ...(bust && { bust }),
+      ...(underbust && { underbust }),
+      waist,
+      hips,
+      shoulder,
+      armLength,
+      inseam,
+      neck,
+    };
+
+    for (const [key, value] of Object.entries(measurementsToValidate)) {
+      if (typeof value === 'number') {
+        const validation = validateMeasurement(key, value, userGender);
+        if (!validation.isValid) {
+          return res.status(400).json({
+            success: false,
+            message: validation.message || `Invalid ${key} measurement`,
+          });
+        }
+      }
     }
 
     // Validate photo requirement based on capture method
