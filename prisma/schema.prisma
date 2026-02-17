@@ -29,6 +29,11 @@ enum OfferStatus {
   EXPIRED // Offer expired
 }
 
+enum ResponsibleParty {
+  CUSTOMER
+  DESIGNER
+}
+
 enum OrderStatus {
   PENDING_PAYMENT // Awaiting payment from customer
   PAYMENT_FAILED // Payment attempt failed
@@ -190,10 +195,11 @@ model Offer {
   design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
 
   // Offer details
-  status        OfferStatus @default(PENDING)
-  customerPrice Float // Customer's offered price
-  designerPrice Float? // Designer's counter price (if countered)
-  finalPrice    Float? // Agreed price (when accepted)
+  status                OfferStatus        @default(PENDING)
+  customerPrice         Float // Customer's offered price
+  designerPrice         Float? // Designer's counter price (if countered)
+  finalPrice            Float? // Agreed price (when accepted)
+  awaitingResponseFrom  ResponsibleParty? // Tracks whose turn it is in negotiation
 
   // Customer measurements (optional - for custom orders)
   measurements Json?

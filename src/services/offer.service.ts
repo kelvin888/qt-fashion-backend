@@ -1,4 +1,4 @@
-import { PrismaClient, OfferStatus } from '@prisma/client';
+import { PrismaClient, OfferStatus, ResponsibleParty } from '@prisma/client';
 import orderService from './order.service';
 
 const prisma = new PrismaClient();
@@ -243,6 +243,7 @@ class OfferService {
             ? offer.customerPrice
             : offer.designerPrice || offer.customerPrice,
         acceptedAt: new Date(),
+        awaitingResponseFrom: null, // Negotiation complete
       },
       include: {
         customer: {
@@ -272,6 +273,7 @@ class OfferService {
   async counterOffer(offerId: string, designerId: string, data: CounterOfferData) {
     const offer = await prisma.offer.findUnique({
       where: { id: offerId },
+      include: { design: { select: { price: true } } },
     });
 
     if (!offer) {
@@ -284,6 +286,13 @@ class OfferService {
 
     if (offer.status !== OfferStatus.PENDING) {
       throw new Error(`Cannot counter offer with status: ${offer.status}`);
+    }
+
+    // Validate counter offer doesn't exceed original design price
+    if (offer.design?.price && data.designerPrice > offer.design.price) {
+      throw new Error(
+        `Counter offer cannot exceed the original design price of ₦${offer.design.price.toLocaleString()}`
+      );
     }
 
     // Check if expired
@@ -301,6 +310,7 @@ class OfferService {
         status: OfferStatus.COUNTERED,
         designerPrice: data.designerPrice,
         designerNotes: data.designerNotes,
+        awaitingResponseFrom: ResponsibleParty.CUSTOMER, // Waiting for customer response
       },
       include: {
         customer: {
@@ -335,6 +345,7 @@ class OfferService {
   ) {
     const offer = await prisma.offer.findUnique({
       where: { id: offerId },
+      include: { design: { select: { price: true } } },
     });
 
     if (!offer) {
@@ -348,6 +359,13 @@ class OfferService {
     if (offer.status !== OfferStatus.COUNTERED) {
       throw new Error(
         `Cannot counter offer with status: ${offer.status}. Offer must have a designer counter first.`
+      );
+    }
+
+    // Validate counter offer doesn't exceed original design price
+    if (offer.design?.price && newPrice > offer.design.price) {
+      throw new Error(
+        `Counter offer cannot exceed the original design price of ₦${offer.design.price.toLocaleString()}`
       );
     }
 
@@ -366,6 +384,7 @@ class OfferService {
         status: OfferStatus.COUNTERED,
         customerPrice: newPrice,
         notes: notes || offer.notes,
+        awaitingResponseFrom: ResponsibleParty.DESIGNER, // Waiting for designer response
       },
       include: {
         customer: {
@@ -441,6 +460,7 @@ class OfferService {
         status: OfferStatus.ACCEPTED,
         finalPrice: offer.designerPrice,
         acceptedAt: new Date(),
+        awaitingResponseFrom: null, // Negotiation complete
       },
       include: {
         customer: {
@@ -488,6 +508,7 @@ class OfferService {
       where: { id: offerId },
       data: {
         status: OfferStatus.REJECTED,
+        awaitingResponseFrom: null, // Negotiation ended
       },
       include: {
         customer: true,
@@ -524,6 +545,7 @@ class OfferService {
       data: {
         status: OfferStatus.REJECTED,
         designerNotes,
+        awaitingResponseFrom: null, // Negotiation ended
       },
       include: {
         customer: true,
