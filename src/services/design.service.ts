@@ -245,12 +245,12 @@ class DesignService {
       throw new Error('Design not found');
     }
 
-    // Calculate price range (±20%)
-    const priceMin = currentDesign.price * 0.8;
-    const priceMax = currentDesign.price * 1.2;
+    // Calculate price range (±30% for better results)
+    const priceMin = currentDesign.price * 0.7;
+    const priceMax = currentDesign.price * 1.3;
 
-    // Fetch candidate designs: same category, different designer
-    const candidates = await prisma.design.findMany({
+    // STRATEGY 1: Try to fetch designs from different designers (preferred)
+    let candidates = await prisma.design.findMany({
       where: {
         category: currentDesign.category,
         designerId: { not: currentDesign.designerId },
@@ -266,14 +266,95 @@ class DesignService {
           },
         },
       },
-      take: 50, // Fetch more candidates for better scoring
+      take: 50,
     });
+
+    // STRATEGY 2: If no different designer designs, fetch from same category (including same designer)
+    if (candidates.length === 0) {
+      console.log(`No designs from different designers, fetching same category for design ${designId}`);
+      candidates = await prisma.design.findMany({
+        where: {
+          category: currentDesign.category,
+          id: { not: designId },
+        },
+        include: {
+          designer: {
+            select: {
+              id: true,
+              fullName: true,
+              brandName: true,
+              brandLogo: true,
+            },
+          },
+        },
+        take: 50,
+      });
+    }
+
+    // STRATEGY 3: If still no results, fetch any designs in similar price range
+    if (candidates.length === 0) {
+      console.log(`No same-category designs, fetching by price range for design ${designId}`);
+      candidates = await prisma.design.findMany({
+        where: {
+          price: {
+            gte: priceMin,
+            lte: priceMax,
+          },
+          id: { not: designId },
+        },
+        include: {
+          designer: {
+            select: {
+              id: true,
+              fullName: true,
+              brandName: true,
+              brandLogo: true,
+            },
+          },
+        },
+        take: 50,
+      });
+    }
+
+    // STRATEGY 4: Last resort - fetch any recent designs
+    if (candidates.length === 0) {
+      console.log(`No designs in price range, fetching recent designs for design ${designId}`);
+      candidates = await prisma.design.findMany({
+        where: {
+          id: { not: designId },
+        },
+        include: {
+          designer: {
+            select: {
+              id: true,
+              fullName: true,
+              brandName: true,
+              brandLogo: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+      });
+    }
 
     // Score each candidate
     const scoredDesigns = candidates.map((design) => {
       let score = 0;
 
-      // Price within ±20% range (+2 points)
+      // Category match (+3 points - highest priority)
+      if (design.category === currentDesign.category) {
+        score += 3;
+      }
+
+      // Different designer (+2 points)
+      if (design.designerId !== currentDesign.designerId) {
+        score += 2;
+      }
+
+      // Price within ±30% range (+2 points)
       if (design.price >= priceMin && design.price <= priceMax) {
         score += 2;
       }
@@ -316,7 +397,11 @@ class DesignService {
     });
 
     // Return top N designs
-    return scoredDesigns.slice(0, limit).map((item) => item.design);
+    const results = scoredDesigns.slice(0, limit).map((item) => item.design);
+    
+    console.log(`Related designs for ${designId}: ${results.length} found (from ${candidates.length} candidates)`);
+    
+    return results;
   }
 
   async getDesigners(
