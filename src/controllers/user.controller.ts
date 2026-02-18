@@ -98,35 +98,17 @@ export const createBodyMeasurement = async (req: Request, res: Response, next: N
       });
     }
 
-    // Get user's gender for gender-specific validation
-    const user = await userService.getUserById(userId);
-    const userGender: Gender = user.gender || 'OTHER';
-
-    // Validate gender-specific torso measurements
-    if (userGender === 'MALE') {
-      if (!chest) {
-        return res.status(400).json({
-          success: false,
-          message: 'Chest measurement is required for male users',
-        });
-      }
-    } else if (userGender === 'FEMALE') {
-      if (!bust) {
-        return res.status(400).json({
-          success: false,
-          message: 'Bust measurement is required for female users',
-        });
-      }
-      // Underbust is optional but recommended for women
-    } else {
-      // For OTHER or PREFER_NOT_TO_SAY, require at least one torso measurement
-      if (!chest && !bust) {
-        return res.status(400).json({
-          success: false,
-          message: 'Either chest or bust measurement is required',
-        });
-      }
+    // Validate torso measurements - require at least one (gender-neutral)
+    if (!chest && !bust) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one torso measurement (chest or bust) is required',
+      });
     }
+
+    // Get user for ISO validation (use 'OTHER' for gender-neutral validation)
+    const user = await userService.getUserById(userId);
+    const userGender: Gender = 'OTHER'; // Gender-neutral: validate against broadest range
 
     // Validate measurements against ISO 8559-1:2017 standards
     const measurementsToValidate = {

@@ -126,6 +126,9 @@ class UserService {
     inseam: number;
     neck: number;
     captureMethod?: 'PHOTO' | 'MANUAL';
+    // AI metadata (from measurement API)
+    aiMetadata?: any;
+    aiConfidenceScore?: number;
   }) {
     const captureMethod = data.captureMethod || 'PHOTO';
 
@@ -168,16 +171,10 @@ class UserService {
       });
     }
 
-    // Prepare AI metadata (only for photo captures)
-    const aiMetadata =
-      captureMethod === 'PHOTO'
-        ? {
-            processingTime: '2.3s',
-            model: 'mock-ai-v1',
-          }
-        : Prisma.JsonNull;
-
-    const aiConfidenceScore = captureMethod === 'PHOTO' ? 0.85 + Math.random() * 0.1 : null;
+    // Use provided AI metadata from frontend (already processed by measurement API)
+    // If not provided and capture method is PHOTO, it means manual entry was used
+    const finalAiMetadata = data.aiMetadata || Prisma.JsonNull;
+    const finalAiConfidenceScore = data.aiConfidenceScore || null;
 
     // Create new measurement record
     const measurement = await prisma.bodyMeasurement.create({
@@ -198,8 +195,8 @@ class UserService {
         inseam: data.inseam,
         neck: data.neck,
         captureMethod: captureMethod,
-        aiConfidenceScore,
-        aiMetadata,
+        aiConfidenceScore: finalAiConfidenceScore,
+        aiMetadata: finalAiMetadata,
         isActive: true,
       },
     });
