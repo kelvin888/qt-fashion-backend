@@ -188,6 +188,14 @@ export class PaymentService {
    * Verify payment transaction with Interswitch
    */
   async verifyTransaction(txnRef: string, userId: string, payRef?: string, isSimulated?: boolean) {
+    console.log('[Payment Service] Starting verification:', {
+      txnRef,
+      userId,
+      payRef,
+      isSimulated,
+      timestamp: new Date().toISOString(),
+    });
+
     const payment = await prisma.paymentTransaction.findUnique({
       where: { txnRef },
       include: {
@@ -195,7 +203,17 @@ export class PaymentService {
       },
     });
 
+    console.log('[Payment Service] Payment lookup result:', {
+      txnRef,
+      found: !!payment,
+      status: payment?.status,
+      hasOrder: !!payment?.order,
+      offerId: payment?.offerId,
+      expiresAt: payment?.expiresAt,
+    });
+
     if (!payment) {
+      console.error('[Payment Service] Payment not found:', { txnRef });
       throw new Error('Payment transaction not found');
     }
 
@@ -204,7 +222,20 @@ export class PaymentService {
       where: { id: payment.offerId },
     });
 
+    console.log('[Payment Service] Authorization check:', {
+      offerId: payment.offerId,
+      offerFound: !!offer,
+      offerCustomerId: offer?.customerId,
+      requestUserId: userId,
+      match: offer?.customerId === userId,
+    });
+
     if (!offer || offer.customerId !== userId) {
+      console.error('[Payment Service] Authorization failed:', {
+        offerId: payment.offerId,
+        offerCustomerId: offer?.customerId,
+        requestUserId: userId,
+      });
       throw new Error('Unauthorized: Not your payment');
     }
 
@@ -218,7 +249,22 @@ export class PaymentService {
     }
 
     // Check if expired
+    const now = new Date();
+    const isExpired = payment.expiresAt < now;
+    console.log('[Payment Service] Expiration check:', {
+      expiresAt: payment.expiresAt,
+      now: now,
+      isExpired,
+      status: payment.status,
+      willMarkExpired: isExpired && payment.status === PaymentStatus.PENDING,
+    });
+
     if (payment.expiresAt < new Date() && payment.status === PaymentStatus.PENDING) {
+      console.log('[Payment Service] Marking payment as expired:', {
+        txnRef: payment.txnRef,
+        expiresAt: payment.expiresAt,
+      });
+
       await prisma.paymentTransaction.update({
         where: { id: payment.id },
         data: {

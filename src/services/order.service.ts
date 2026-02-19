@@ -239,11 +239,30 @@ class OrderService {
     }
 
     // Validate address
+    console.log('[Order Service] Looking up shipping address:', {
+      shippingAddressId,
+      offerCustomerId: offer.customerId,
+    });
+
     const address = await prisma.address.findUnique({
       where: { id: shippingAddressId },
     });
 
+    console.log('[Order Service] Address validation result:', {
+      shippingAddressId,
+      found: !!address,
+      addressUserId: address?.userId,
+      offerCustomerId: offer.customerId,
+      match: address?.userId === offer.customerId,
+    });
+
     if (!address || address.userId !== offer.customerId) {
+      console.error('[Order Service] Invalid shipping address:', {
+        shippingAddressId,
+        addressFound: !!address,
+        addressUserId: address?.userId,
+        offerCustomerId: offer.customerId,
+      });
       throw new Error('Invalid shipping address');
     }
 

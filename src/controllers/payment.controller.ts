@@ -45,11 +45,29 @@ export const verifyPayment = async (req: Request, res: Response) => {
     const { txnRef, addressId, payRef, isSimulated } = req.body;
     const userId = req.user?.id;
 
+    // Log incoming request
+    console.log('[Payment Verify] Incoming request:', {
+      txnRef,
+      addressId,
+      payRef,
+      isSimulated,
+      userId,
+      hasAuth: !!req.user,
+      timestamp: new Date().toISOString(),
+    });
+
     if (!userId) {
+      console.log('[Payment Verify] Authentication failed - no userId');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     if (!txnRef || !addressId) {
+      console.log('[Payment Verify] Validation failed - missing required fields:', {
+        hasTxnRef: !!txnRef,
+        hasAddressId: !!addressId,
+        txnRef,
+        addressId,
+      });
       return res.status(400).json({
         error: 'Transaction reference and Address ID are required',
       });
@@ -65,11 +83,23 @@ export const verifyPayment = async (req: Request, res: Response) => {
 
     // If payment is successful and no order exists yet, create the order
     if (verificationResult.success && !verificationResult.payment.orderId) {
+      console.log('[Payment Verify] Payment successful, creating order:', {
+        paymentId: verificationResult.payment.id,
+        addressId,
+        txnRef,
+      });
+
       try {
         const order = await orderService.createOrderFromPayment(
           verificationResult.payment.id,
           addressId
         );
+
+        console.log('[Payment Verify] Order created successfully:', {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          paymentId: verificationResult.payment.id,
+        });
 
         return res.status(200).json({
           success: true,
@@ -80,7 +110,14 @@ export const verifyPayment = async (req: Request, res: Response) => {
           },
         });
       } catch (orderError: any) {
-        console.error('Error creating order after payment:', orderError);
+        console.error('[Payment Verify] Error creating order after payment:', {
+          message: orderError.message,
+          name: orderError.name,
+          stack: orderError.stack,
+          paymentId: verificationResult.payment.id,
+          addressId,
+          txnRef,
+        });
         // Payment succeeded but order creation failed
         return res.status(500).json({
           success: true,
@@ -106,7 +143,15 @@ export const verifyPayment = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error('Error verifying payment:', error);
+    console.error('[Payment Verify] Error occurred:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      txnRef: req.body?.txnRef,
+      addressId: req.body?.addressId,
+      userId: req.user?.id,
+      timestamp: new Date().toISOString(),
+    });
     res.status(400).json({
       error: error.message || 'Failed to verify payment',
     });
