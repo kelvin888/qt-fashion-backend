@@ -45,9 +45,9 @@ export class PaymentService {
   private inlineScriptUrl: string;
 
   constructor() {
-    this.merchantCode = process.env.INTERSWITCH_MERCHANT_CODE || 'MX51309';
-    this.payItemId = process.env.INTERSWITCH_PAY_ITEM_ID || '6242829';
-    this.mode = process.env.INTERSWITCH_MODE || 'TEST';
+    this.merchantCode = process.env.INTERSWITCH_MERCHANT_CODE || 'MX153376';
+    this.payItemId = process.env.INTERSWITCH_PAY_ITEM_ID || '5558761';
+    this.mode = process.env.INTERSWITCH_MODE || 'LIVE';
     this.apiBaseUrl = process.env.INTERSWITCH_API_BASE_URL || 'https://qa.interswitchng.com';
     this.inlineScriptUrl =
       process.env.INTERSWITCH_INLINE_SCRIPT_URL ||
