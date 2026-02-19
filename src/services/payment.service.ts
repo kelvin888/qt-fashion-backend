@@ -53,14 +53,20 @@ export class PaymentService {
     this.inlineScriptUrl = process.env.INTERSWITCH_INLINE_SCRIPT_URL!;
 
     // Validate required environment variables
-    if (!this.merchantCode || !this.payItemId || !this.mode || !this.apiBaseUrl || !this.inlineScriptUrl) {
+    if (
+      !this.merchantCode ||
+      !this.payItemId ||
+      !this.mode ||
+      !this.apiBaseUrl ||
+      !this.inlineScriptUrl
+    ) {
       const missing = [];
       if (!this.merchantCode) missing.push('INTERSWITCH_MERCHANT_CODE');
       if (!this.payItemId) missing.push('INTERSWITCH_PAY_ITEM_ID');
       if (!this.mode) missing.push('INTERSWITCH_MODE');
       if (!this.apiBaseUrl) missing.push('INTERSWITCH_API_BASE_URL');
       if (!this.inlineScriptUrl) missing.push('INTERSWITCH_INLINE_SCRIPT_URL');
-      
+
       throw new Error(`Missing required Interswitch environment variables: ${missing.join(', ')}`);
     }
 
