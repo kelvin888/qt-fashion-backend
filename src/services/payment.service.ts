@@ -45,13 +45,26 @@ export class PaymentService {
   private inlineScriptUrl: string;
 
   constructor() {
-    this.merchantCode = process.env.INTERSWITCH_MERCHANT_CODE || 'MX153376';
-    this.payItemId = process.env.INTERSWITCH_PAY_ITEM_ID || '5558761';
+    this.merchantCode = process.env.INTERSWITCH_MERCHANT_CODE || 'MX51309';
+    this.payItemId = process.env.INTERSWITCH_PAY_ITEM_ID || '6242829';
     this.mode = process.env.INTERSWITCH_MODE || 'LIVE';
-    this.apiBaseUrl = process.env.INTERSWITCH_API_BASE_URL || 'https://qa.interswitchng.com';
+    this.apiBaseUrl = process.env.INTERSWITCH_API_BASE_URL || 'https://webpay.interswitchng.com';
     this.inlineScriptUrl =
       process.env.INTERSWITCH_INLINE_SCRIPT_URL ||
-      'https://newwebpay.qa.interswitchng.com/inline-checkout.js';
+      'https://newwebpay.interswitchng.com/inline-checkout.js';
+
+    // Log configuration on startup
+    console.log('[Payment Service] Interswitch Configuration:', {
+      merchantCode: this.merchantCode,
+      payItemId: this.payItemId,
+      mode: this.mode,
+      apiBaseUrl: this.apiBaseUrl,
+      usingEnvVars: {
+        merchantCode: !!process.env.INTERSWITCH_MERCHANT_CODE,
+        payItemId: !!process.env.INTERSWITCH_PAY_ITEM_ID,
+        mode: !!process.env.INTERSWITCH_MODE,
+      },
+    });
   }
 
   /**
@@ -170,7 +183,7 @@ export class PaymentService {
     customer: any,
     designer: any
   ): InterswitchCheckoutParams {
-    return {
+    const params = {
       merchant_code: this.merchantCode,
       pay_item_id: this.payItemId,
       txn_ref: payment.txnRef,
@@ -182,6 +195,16 @@ export class PaymentService {
       designer_name: designer.fullName || designer.businessName || 'Designer',
       mode: this.mode,
     };
+
+    console.log('[Payment Service] Checkout params prepared:', {
+      merchant_code: params.merchant_code,
+      pay_item_id: params.pay_item_id,
+      txn_ref: params.txn_ref,
+      amount: params.amount,
+      mode: params.mode,
+    });
+
+    return params;
   }
 
   /**
@@ -311,8 +334,24 @@ export class PaymentService {
         amount: amountInKobo,
       };
 
+      console.log('[Payment Service] Calling Interswitch verify API:', {
+        url,
+        merchantcode: params.merchantcode,
+        transactionreference: params.transactionreference,
+        amount: params.amount,
+        apiBaseUrl: this.apiBaseUrl,
+      });
+
       const response = await axios.get<InterswitchVerifyResponse>(url, { params });
       const data = response.data;
+
+      console.log('[Payment Service] Interswitch API response:', {
+        ResponseCode: data.ResponseCode,
+        ResponseDescription: data.ResponseDescription,
+        MerchantReference: data.MerchantReference,
+        Amount: data.Amount,
+        PaymentReference: data.PaymentReference,
+      });
 
       // Update payment transaction with response
       const updateData: any = {
@@ -344,6 +383,15 @@ export class PaymentService {
         responseCode: data.ResponseCode,
       };
     } catch (error: any) {
+      console.error('[Payment Service] Interswitch verification error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        txnRef,
+        merchantCode: this.merchantCode,
+        payItemId: this.payItemId,
+      });
+
       // Update payment with error
       await prisma.paymentTransaction.update({
         where: { id: payment.id },
