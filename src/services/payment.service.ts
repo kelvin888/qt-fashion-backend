@@ -45,13 +45,24 @@ export class PaymentService {
   private inlineScriptUrl: string;
 
   constructor() {
-    this.merchantCode = process.env.INTERSWITCH_MERCHANT_CODE || 'MX51309';
-    this.payItemId = process.env.INTERSWITCH_PAY_ITEM_ID || '6242829';
-    this.mode = process.env.INTERSWITCH_MODE || 'LIVE';
-    this.apiBaseUrl = process.env.INTERSWITCH_API_BASE_URL || 'https://webpay.interswitchng.com';
-    this.inlineScriptUrl =
-      process.env.INTERSWITCH_INLINE_SCRIPT_URL ||
-      'https://newwebpay.interswitchng.com/inline-checkout.js';
+    // Require environment variables - no fallbacks
+    this.merchantCode = process.env.INTERSWITCH_MERCHANT_CODE!;
+    this.payItemId = process.env.INTERSWITCH_PAY_ITEM_ID!;
+    this.mode = process.env.INTERSWITCH_MODE!;
+    this.apiBaseUrl = process.env.INTERSWITCH_API_BASE_URL!;
+    this.inlineScriptUrl = process.env.INTERSWITCH_INLINE_SCRIPT_URL!;
+
+    // Validate required environment variables
+    if (!this.merchantCode || !this.payItemId || !this.mode || !this.apiBaseUrl || !this.inlineScriptUrl) {
+      const missing = [];
+      if (!this.merchantCode) missing.push('INTERSWITCH_MERCHANT_CODE');
+      if (!this.payItemId) missing.push('INTERSWITCH_PAY_ITEM_ID');
+      if (!this.mode) missing.push('INTERSWITCH_MODE');
+      if (!this.apiBaseUrl) missing.push('INTERSWITCH_API_BASE_URL');
+      if (!this.inlineScriptUrl) missing.push('INTERSWITCH_INLINE_SCRIPT_URL');
+      
+      throw new Error(`Missing required Interswitch environment variables: ${missing.join(', ')}`);
+    }
 
     // Log configuration on startup
     console.log('[Payment Service] Interswitch Configuration:', {
@@ -59,11 +70,7 @@ export class PaymentService {
       payItemId: this.payItemId,
       mode: this.mode,
       apiBaseUrl: this.apiBaseUrl,
-      usingEnvVars: {
-        merchantCode: !!process.env.INTERSWITCH_MERCHANT_CODE,
-        payItemId: !!process.env.INTERSWITCH_PAY_ITEM_ID,
-        mode: !!process.env.INTERSWITCH_MODE,
-      },
+      inlineScriptUrl: this.inlineScriptUrl,
     });
   }
 
