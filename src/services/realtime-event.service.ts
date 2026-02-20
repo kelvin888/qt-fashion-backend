@@ -27,7 +27,7 @@ interface SseClient {
 
 class RealtimeEventService {
   private readonly clientsByUser = new Map<string, Map<string, SseClient>>();
-  private readonly heartbeatIntervalMs = 25000;
+  private readonly heartbeatIntervalMs = 15000;
 
   subscribe(userId: string, response: Response): void {
     response.setHeader('Content-Type', 'text/event-stream');

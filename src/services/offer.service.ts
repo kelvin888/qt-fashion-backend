@@ -280,6 +280,14 @@ class OfferService {
       throw new Error(`Cannot accept offer with status: ${offer.status}`);
     }
 
+    // If status is COUNTERED, verify it's designer's turn
+    if (
+      offer.status === OfferStatus.COUNTERED &&
+      offer.awaitingResponseFrom !== ResponsibleParty.DESIGNER
+    ) {
+      throw new Error('Waiting for customer to respond');
+    }
+
     // Check if expired
     if (offer.expiresAt && offer.expiresAt < new Date()) {
       await prisma.offer.update({
@@ -369,8 +377,19 @@ class OfferService {
       throw new Error('Unauthorized to counter this offer');
     }
 
-    if (offer.status !== OfferStatus.PENDING) {
-      throw new Error(`Cannot counter offer with status: ${offer.status}`);
+    // Allow countering if:
+    // 1. Offer is in PENDING status (initial customer offer)
+    // 2. Offer is in COUNTERED status AND it's designer's turn to respond
+    if (
+      offer.status !== OfferStatus.PENDING &&
+      (offer.status !== OfferStatus.COUNTERED ||
+        offer.awaitingResponseFrom !== ResponsibleParty.DESIGNER)
+    ) {
+      throw new Error(
+        offer.status === OfferStatus.COUNTERED
+          ? 'Waiting for customer to respond to your counter offer'
+          : `Cannot counter offer with status: ${offer.status}`
+      );
     }
 
     // Validate counter offer doesn't exceed original design price
@@ -687,6 +706,14 @@ class OfferService {
 
     if (offer.status !== OfferStatus.PENDING && offer.status !== OfferStatus.COUNTERED) {
       throw new Error(`Cannot reject offer with status: ${offer.status}`);
+    }
+
+    // If status is COUNTERED, verify it's designer's turn
+    if (
+      offer.status === OfferStatus.COUNTERED &&
+      offer.awaitingResponseFrom !== ResponsibleParty.DESIGNER
+    ) {
+      throw new Error('Waiting for customer to respond');
     }
 
     const updatedOffer = await prisma.offer.update({
