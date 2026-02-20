@@ -53,6 +53,10 @@ class RealtimeEventService {
     });
     this.clientsByUser.set(userId, userClients);
 
+    console.log(
+      `[Realtime] Client connected - userId: ${userId}, clientId: ${clientId}, totalClients: ${userClients.size}`
+    );
+
     response.write('retry: 5000\n\n');
     this.writeEvent(response, {
       type: 'REALTIME_CONNECTED',
@@ -72,7 +76,15 @@ class RealtimeEventService {
 
   publishToUser(userId: string, event: Omit<RealtimeEvent, 'recipientUserId' | 'createdAt'>): void {
     const clients = this.clientsByUser.get(userId);
+
+    console.log(`[Realtime] Publishing to user ${userId}:`, {
+      domain: event.domain,
+      action: event.action,
+      connectedClients: clients?.size || 0,
+    });
+
     if (!clients || clients.size === 0) {
+      console.warn(`[Realtime] No connected clients for user ${userId}, event not delivered`);
       return;
     }
 
@@ -85,6 +97,8 @@ class RealtimeEventService {
     clients.forEach((client) => {
       this.writeEvent(client.response, fullEvent);
     });
+
+    console.log(`[Realtime] Event delivered to ${clients.size} client(s) for user ${userId}`);
   }
 
   publishToUsers(
@@ -92,6 +106,10 @@ class RealtimeEventService {
     event: Omit<RealtimeEvent, 'recipientUserId' | 'createdAt'>
   ): void {
     const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)));
+    console.log(
+      `[Realtime] Publishing to multiple users - Domain: ${event.domain}, Action: ${event.action}, User IDs: [${uniqueUserIds.join(', ')}]`
+    );
+
     uniqueUserIds.forEach((userId) => {
       this.publishToUser(userId, event);
     });
@@ -110,8 +128,13 @@ class RealtimeEventService {
 
     userClients.delete(clientId);
 
+    console.log(
+      `[Realtime] Client disconnected - userId: ${userId}, clientId: ${clientId}, remainingClients: ${userClients.size}`
+    );
+
     if (userClients.size === 0) {
       this.clientsByUser.delete(userId);
+      console.log(`[Realtime] All clients disconnected for user ${userId}`);
       return;
     }
 

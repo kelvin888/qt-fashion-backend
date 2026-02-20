@@ -29,6 +29,10 @@ class OfferService {
     actorUserId: string,
     payload?: Record<string, unknown>
   ) {
+    console.log(
+      `[OfferService] Publishing realtime event - Action: ${action}, Offer: ${offer.id}, Actor: ${actorUserId}, Recipients: [${offer.customerId}, ${offer.designerId}]`
+    );
+
     realtimeEventService.publishToUsers([offer.customerId, offer.designerId], {
       type: 'OFFER_UPDATED',
       domain: 'offer',
@@ -137,6 +141,10 @@ class OfferService {
       },
     });
 
+    console.log(
+      `[OfferService] Offer created - ID: ${offer.id}, Customer: ${offer.customerId}, Designer: ${offer.designerId}`
+    );
+
     await this.notifyCounterparty(offer, data.customerId, {
       type: 'OFFER_CREATED',
       action: 'offer_created',
@@ -147,6 +155,7 @@ class OfferService {
       },
     });
 
+    console.log(`[OfferService] Publishing realtime event for offer ${offer.id}`);
     this.publishOfferRealtimeToParticipants(offer, 'offer_created', data.customerId, {
       status: offer.status,
     });
