@@ -487,9 +487,15 @@ class OfferService {
       throw new Error('Unauthorized to counter this offer');
     }
 
-    if (offer.status !== OfferStatus.COUNTERED) {
+    // Allow countering only if offer is COUNTERED and it's customer's turn
+    if (
+      offer.status !== OfferStatus.COUNTERED ||
+      offer.awaitingResponseFrom !== ResponsibleParty.CUSTOMER
+    ) {
       throw new Error(
-        `Cannot counter offer with status: ${offer.status}. Offer must have a designer counter first.`
+        offer.status === OfferStatus.COUNTERED
+          ? 'Waiting for designer to respond to your counter offer'
+          : `Cannot counter offer with status: ${offer.status}. Offer must have a designer counter first.`
       );
     }
 
