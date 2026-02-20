@@ -4,6 +4,7 @@ import { OrderStatus } from '@prisma/client';
 import { trackingService } from './tracking.service';
 import walletService from './wallet.service';
 import { notificationService } from './notification.service';
+import feeService from './fee.service';
 
 /**
  * Cron Service
@@ -99,9 +100,18 @@ class CronService {
 
     for (const order of ordersToConfirm) {
       try {
-        // Calculate platform fee (10%)
-        const platformFee = order.finalPrice * 0.1;
-        const netAmount = order.finalPrice - platformFee;
+        // Calculate platform fee using dynamic fee service
+        const feeCalc = await feeService.calculateFeeForDesigner(
+          order.designerId,
+          order.finalPrice,
+          now
+        );
+        const platformFee = feeCalc.feeAmount;
+        const netAmount = feeCalc.designerReceives;
+
+        console.log(
+          `[Cron] Order ${order.orderNumber}: ${(feeCalc.percentage * 100).toFixed(1)}% fee via ${feeCalc.appliedRule}`
+        );
 
         // Release payment to designer
         await walletService.creditWallet({
@@ -121,6 +131,8 @@ class CronService {
             paymentReleasedAt: now,
             paymentAmount: netAmount,
             platformFee,
+            feePercentageApplied: feeCalc.percentage,
+            feeRuleApplied: feeCalc.appliedRule,
           },
           include: {
             customer: true,

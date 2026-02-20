@@ -17,6 +17,7 @@ import customRequestRoutes from './routes/customRequest.routes';
 import payoutRoutes from './routes/payout.routes';
 import notificationRoutes from './routes/notification.routes';
 import eventsRoutes from './routes/events.routes';
+import adminRoutes from './routes/admin.routes';
 import { deadlineService } from './services/deadline.service';
 import { cronService } from './services/cron.service';
 
@@ -65,6 +66,7 @@ app.use('/api/custom-requests', customRequestRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/admin', adminRoutes); // Admin routes
 
 // 404 handler
 app.use((req, res) => {

@@ -9,6 +9,7 @@ import { Order, OrderStatus } from '@prisma/client';
 import walletService from './wallet.service';
 import { notificationService } from './notification.service';
 import { realtimeEventService } from './realtime-event.service';
+import feeService from './fee.service';
 
 interface ProductionStep {
   step: string;
@@ -788,9 +789,18 @@ class OrderService {
       throw new Error('Order must be shipped or delivered to confirm receipt');
     }
 
-    // Calculate platform fee (10%)
-    const platformFee = existing.finalPrice * 0.1;
-    const paymentAmount = existing.finalPrice - platformFee;
+    // Calculate platform fee using dynamic fee service
+    const feeCalc = await feeService.calculateFeeForDesigner(
+      existing.designerId,
+      existing.finalPrice,
+      new Date()
+    );
+    const platformFee = feeCalc.feeAmount;
+    const paymentAmount = feeCalc.designerReceives;
+
+    console.log(
+      `💰 Fee calculation: ${(feeCalc.percentage * 100).toFixed(1)}% fee via ${feeCalc.appliedRule} (${feeCalc.ruleDetails})`
+    );
 
     const order = await prisma.order.update({
       where: { id: orderId },
@@ -802,6 +812,8 @@ class OrderService {
         paymentReleasedAt: new Date(),
         paymentAmount,
         platformFee,
+        feePercentageApplied: feeCalc.percentage,
+        feeRuleApplied: feeCalc.appliedRule,
         rating: data.rating,
         review: data.review,
       },

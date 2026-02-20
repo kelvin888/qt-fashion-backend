@@ -145,6 +145,13 @@ model User {
   // Notifications
   notifications Notification[] @relation("UserNotifications")
 
+  // Platform Settings & Fee Management
+  settingsUpdates       PlatformSettings[]     @relation("SettingsUpdatedBy")
+  feeOverrides          DesignerFeeOverride[]  @relation("DesignerFeeOverrides")
+  createdFeeOverrides   DesignerFeeOverride[]  @relation("FeeOverrideCreatedBy")
+  createdPromotions     FeePromotionalPeriod[] @relation("PromotionCreatedBy")
+  settingsAuditLogs     SettingsAuditLog[]     @relation("SettingsChangedBy")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -290,6 +297,10 @@ model Order {
   paymentReleasedAt DateTime? // When designer received payment
   paymentAmount     Float? // Amount released (after platform fees)
   platformFee       Float? // Platform commission amount
+  
+  // Fee Tracking (for dynamic fee system)
+  feePercentageApplied Float? // Actual fee percentage applied (0.10 = 10%)
+  feeRuleApplied       String? // "DEFAULT" | "TIER_2" | "OVERRIDE" | "PROMOTION"
   
   // Buyer Protection
   buyerProtectionUntil DateTime? // 60 days from order creation
@@ -610,4 +621,126 @@ model Notification {
   @@index([read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ========================================
+// PLATFORM SETTINGS & FEE MANAGEMENT
+// ========================================
+
+// Platform-wide configuration settings
+model PlatformSettings {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g., "platform_fee_percentage"
+  value       String // Stored as string, parsed by application
+  dataType    String   @default("string") // "number" | "string" | "boolean" | "json"
+  category    String   @default("general") // "fees" | "payments" | "general"
+  description String?
+  
+  // Audit trail
+  updatedBy String? // Admin user ID
+  updatedByUser User? @relation("SettingsUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Audit logs for this setting
+  auditLogs SettingsAuditLog[] @relation("SettingAuditLogs")
+
+  @@index([key])
+  @@index([category])
+  @@map("platform_settings")
+}
+
+// Fee tier configuration based on designer performance
+model FeeTier {
+  id             String   @id @default(cuid())
+  name           String // e.g., "Bronze", "Silver", "Gold"
+  minOrders      Int // Minimum completed orders to qualify
+  maxOrders      Int? // Maximum orders (null = no upper limit)
+  feePercentage  Float // Platform fee for this tier (0.08 = 8%)
+  isActive       Boolean  @default(true)
+  priority       Int      @default(0) // Higher priority = checked first
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name])
+  @@index([isActive])
+  @@index([priority])
+  @@map("fee_tiers")
+}
+
+// Designer-specific fee overrides
+model DesignerFeeOverride {
+  id            String   @id @default(cuid())
+  designerId    String
+  designer      User     @relation("DesignerFeeOverrides", fields: [designerId], references: [id], onDelete: Cascade)
+  
+  feePercentage Float // Custom fee percentage for this designer
+  effectiveFrom DateTime @default(now())
+  effectiveUntil DateTime? // Optional expiration date
+  reason        String? // Why this designer has a custom fee
+  
+  // Audit trail
+  createdBy     String
+  createdByUser User   @relation("FeeOverrideCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([designerId])
+  @@index([effectiveFrom])
+  @@index([effectiveUntil])
+  @@map("designer_fee_overrides")
+}
+
+// Promotional periods with reduced fees
+model FeePromotionalPeriod {
+  id              String   @id @default(cuid())
+  name            String // e.g., "Holiday Sale 2026"
+  feePercentage   Float // Reduced fee during promotion
+  startDate       DateTime
+  endDate         DateTime
+  applicableToAll Boolean  @default(true) // If false, specific designers only
+  isActive        Boolean  @default(true)
+  
+  // Audit trail
+  createdBy       String
+  createdByUser   User   @relation("PromotionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startDate])
+  @@index([endDate])
+  @@index([isActive])
+  @@map("fee_promotional_periods")
+}
+
+// Audit log for all settings changes
+model SettingsAuditLog {
+  id         String   @id @default(cuid())
+  
+  // What changed
+  settingKey String // The setting that was changed
+  settingId  String? // Reference to PlatformSettings if applicable
+  setting    PlatformSettings? @relation("SettingAuditLogs", fields: [settingId], references: [id], onDelete: SetNull)
+  
+  oldValue   String? // Previous value
+  newValue   String // New value
+  
+  // Who changed it
+  changedBy     String
+  changedByUser User   @relation("SettingsChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+  
+  // Why it was changed
+  reason    String?
+  ipAddress String?
+  
+  changedAt DateTime @default(now())
+
+  @@index([settingKey])
+  @@index([changedBy])
+  @@index([changedAt])
+  @@map("settings_audit_logs")
 }
