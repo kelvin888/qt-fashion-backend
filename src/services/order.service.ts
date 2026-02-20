@@ -8,6 +8,7 @@ import prisma from '../config/database';
 import { Order, OrderStatus } from '@prisma/client';
 import walletService from './wallet.service';
 import { notificationService } from './notification.service';
+import { realtimeEventService } from './realtime-event.service';
 
 interface ProductionStep {
   step: string;
@@ -53,6 +54,29 @@ interface ConfirmDeliveryData {
 }
 
 class OrderService {
+  private publishOrderRealtimeToParticipants(
+    order: { id: string; customerId: string; designerId: string },
+    action: string,
+    actorUserId: string,
+    payload?: Record<string, unknown>
+  ) {
+    console.log(
+      `[OrderService] Publishing realtime event - Action: ${action}, Order: ${order.id}, Actor: ${actorUserId}, Recipients: [${order.customerId}, ${order.designerId}]`
+    );
+
+    realtimeEventService.publishToUsers([order.customerId, order.designerId], {
+      type: 'ORDER_UPDATED',
+      domain: 'order',
+      action,
+      entityId: order.id,
+      actorUserId,
+      payload: {
+        orderId: order.id,
+        ...(payload || {}),
+      },
+    });
+  }
+
   /**
    * Generate unique order number (QT-YYYY-XXXXX)
    */
@@ -657,6 +681,12 @@ class OrderService {
       },
     });
 
+    // Publish realtime event to customer
+    this.publishOrderRealtimeToParticipants(order, 'production_updated', userId, {
+      stepId,
+      status: data.status,
+    });
+
     return order;
   }
 
@@ -722,6 +752,12 @@ class OrderService {
 
     // Notify customer that order has been shipped
     await notificationService.notifyOrderShipped(order);
+
+    // Publish realtime event to customer
+    this.publishOrderRealtimeToParticipants(order, 'order_shipped', userId, {
+      carrier: order.carrier,
+      trackingNumber: order.trackingNumber,
+    });
 
     return order;
   }
