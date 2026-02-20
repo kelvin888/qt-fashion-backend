@@ -35,6 +35,7 @@ const notifyAndBroadcastCustomRequest = async ({
     type,
     title,
     message,
+    customRequestId: requestId,
     data: {
       requestId,
       ...(payload || {}),

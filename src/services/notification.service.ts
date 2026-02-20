@@ -15,6 +15,8 @@ export interface CreateNotificationInput {
   title: string;
   message: string;
   orderId?: string;
+  offerId?: string;
+  customRequestId?: string;
   data?: Record<string, any>;
   realtime?: {
     domain: RealtimeDomain;
@@ -44,6 +46,8 @@ export class NotificationService {
         title: data.title,
         message: data.message,
         orderId: data.orderId,
+        offerId: data.offerId,
+        customRequestId: data.customRequestId,
         read: false,
       },
     });

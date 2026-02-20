@@ -586,9 +586,15 @@ model Notification {
   title   String // Notification title
   message String // Notification message
 
-  // Optional order reference
+  // Optional references
   orderId String?
   order   Order?  @relation("OrderNotifications", fields: [orderId], references: [id], onDelete: Cascade)
+
+  offerId String?
+  // Note: No relation to Offer to avoid cascading deletes - notifications persist even if offer is deleted
+
+  customRequestId String?
+  // Note: No relation to CustomRequest to avoid cascading deletes - notifications persist even if request is deleted
 
   // Status
   read   Boolean   @default(false)
@@ -599,6 +605,8 @@ model Notification {
 
   @@index([userId])
   @@index([orderId])
+  @@index([offerId])
+  @@index([customRequestId])
   @@index([read])
   @@index([createdAt])
   @@map("notifications")

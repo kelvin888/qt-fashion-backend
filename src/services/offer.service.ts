@@ -60,6 +60,7 @@ class OfferService {
       type: input.type,
       title: input.title,
       message: input.message,
+      offerId: offer.id,
       data: {
         offerId: offer.id,
         ...(input.payload || {}),
