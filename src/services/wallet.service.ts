@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { realtimeEventService } from './realtime-event.service';
 
 interface CreditWalletData {
   userId: string;
@@ -59,6 +60,22 @@ class WalletService {
     );
     console.log(`   Previous balance: ₦${balanceBefore.toLocaleString()}`);
     console.log(`   New balance: ₦${balanceAfter.toLocaleString()}`);
+
+    // Publish real-time wallet update event
+    realtimeEventService.publishToUser(userId, {
+      type: 'WALLET_UPDATED',
+      domain: 'wallet',
+      action: 'wallet_credited',
+      entityId: userId,
+      actorUserId: userId,
+      payload: {
+        amount,
+        balanceBefore,
+        balanceAfter,
+        description,
+        orderId,
+      },
+    });
   }
 
   /**
