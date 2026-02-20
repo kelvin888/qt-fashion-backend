@@ -7,6 +7,8 @@ import {
   getCustomRequestById,
   updateCustomRequest,
   submitBid,
+  updateBid,
+  withdrawBid,
   getBidsForRequest,
   acceptBid,
   getMyBids,
@@ -24,6 +26,8 @@ router.patch('/:id', authenticate, updateCustomRequest);
 
 // Bidding routes
 router.post('/:id/bids', authenticate, submitBid);
+router.patch('/:requestId/bids/:bidId', authenticate, updateBid);
+router.delete('/:requestId/bids/:bidId', authenticate, withdrawBid);
 router.get('/:id/bids', authenticate, getBidsForRequest);
 router.post('/:requestId/bids/:bidId/accept', authenticate, acceptBid);
 

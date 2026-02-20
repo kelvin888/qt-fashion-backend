@@ -16,6 +16,7 @@ import addressRoutes from './routes/address.routes';
 import customRequestRoutes from './routes/customRequest.routes';
 import payoutRoutes from './routes/payout.routes';
 import notificationRoutes from './routes/notification.routes';
+import eventsRoutes from './routes/events.routes';
 import { deadlineService } from './services/deadline.service';
 import { cronService } from './services/cron.service';
 
@@ -63,6 +64,7 @@ app.use('/api/addresses', addressRoutes);
 app.use('/api/custom-requests', customRequestRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/events', eventsRoutes);
 
 // 404 handler
 app.use((req, res) => {

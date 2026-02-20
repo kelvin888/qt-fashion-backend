@@ -1,5 +1,10 @@
 import { PrismaClient, Notification } from '@prisma/client';
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
+import {
+  realtimeEventService,
+  RealtimeDomain,
+  RealtimeEventPayload,
+} from './realtime-event.service';
 
 const prisma = new PrismaClient();
 const expo = new Expo();
@@ -11,6 +16,13 @@ export interface CreateNotificationInput {
   message: string;
   orderId?: string;
   data?: Record<string, any>;
+  realtime?: {
+    domain: RealtimeDomain;
+    action: string;
+    entityId?: string;
+    actorUserId?: string;
+    payload?: RealtimeEventPayload;
+  };
 }
 
 interface SendPushNotificationInput {
@@ -201,6 +213,22 @@ export class NotificationService {
     }).catch((error) => {
       console.error('Failed to send push notification:', error);
     });
+
+    if (data.realtime) {
+      realtimeEventService.publishToUser(data.userId, {
+        type: data.type,
+        domain: data.realtime.domain,
+        action: data.realtime.action,
+        entityId: data.realtime.entityId,
+        actorUserId: data.realtime.actorUserId,
+        payload: {
+          notificationId: notification.id,
+          title: data.title,
+          message: data.message,
+          ...(data.realtime.payload || {}),
+        },
+      });
+    }
 
     return notification;
   }

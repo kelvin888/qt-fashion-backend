@@ -1,5 +1,7 @@
 import { PrismaClient, OfferStatus, ResponsibleParty } from '@prisma/client';
 import orderService from './order.service';
+import { notificationService } from './notification.service';
+import { realtimeEventService } from './realtime-event.service';
 
 const prisma = new PrismaClient();
 
@@ -21,6 +23,60 @@ export interface CounterOfferData {
 }
 
 class OfferService {
+  private publishOfferRealtimeToParticipants(
+    offer: { id: string; customerId: string; designerId: string },
+    action: string,
+    actorUserId: string,
+    payload?: Record<string, unknown>
+  ) {
+    realtimeEventService.publishToUsers([offer.customerId, offer.designerId], {
+      type: 'OFFER_UPDATED',
+      domain: 'offer',
+      action,
+      entityId: offer.id,
+      actorUserId,
+      payload: {
+        offerId: offer.id,
+        ...(payload || {}),
+      },
+    });
+  }
+
+  private async notifyCounterparty(
+    offer: { id: string; customerId: string; designerId: string },
+    actorUserId: string,
+    input: {
+      type: string;
+      action: string;
+      title: string;
+      message: string;
+      payload?: Record<string, unknown>;
+    }
+  ) {
+    const recipientUserId = actorUserId === offer.customerId ? offer.designerId : offer.customerId;
+
+    await notificationService.notifyUser({
+      userId: recipientUserId,
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      data: {
+        offerId: offer.id,
+        ...(input.payload || {}),
+      },
+      realtime: {
+        domain: 'offer',
+        action: input.action,
+        entityId: offer.id,
+        actorUserId,
+        payload: {
+          offerId: offer.id,
+          ...(input.payload || {}),
+        },
+      },
+    });
+  }
+
   /**
    * Create new offer (Customer makes offer to designer)
    */
@@ -78,6 +134,20 @@ class OfferService {
           },
         },
       },
+    });
+
+    await this.notifyCounterparty(offer, data.customerId, {
+      type: 'OFFER_CREATED',
+      action: 'offer_created',
+      title: 'New Offer Received',
+      message: `${offer.customer.fullName} sent you an offer for ${offer.design.title}.`,
+      payload: {
+        status: offer.status,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(offer, 'offer_created', data.customerId, {
+      status: offer.status,
     });
 
     return offer;
@@ -264,6 +334,21 @@ class OfferService {
       },
     });
 
+    await this.notifyCounterparty(updatedOffer, designerId, {
+      type: 'OFFER_ACCEPTED',
+      action: 'offer_accepted',
+      title: 'Offer Accepted',
+      message: `Your offer for ${updatedOffer.design.title} was accepted. Proceed to payment.`,
+      payload: {
+        status: updatedOffer.status,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(updatedOffer, 'offer_accepted', designerId, {
+      status: updatedOffer.status,
+      awaitingResponseFrom: updatedOffer.awaitingResponseFrom,
+    });
+
     return updatedOffer;
   }
 
@@ -329,6 +414,23 @@ class OfferService {
         },
         design: true,
       },
+    });
+
+    await this.notifyCounterparty(updatedOffer, designerId, {
+      type: 'OFFER_COUNTERED',
+      action: 'designer_countered',
+      title: 'Counter Offer Received',
+      message: `${updatedOffer.designer.brandName || updatedOffer.designer.fullName} sent a counter offer.`,
+      payload: {
+        status: updatedOffer.status,
+        designerPrice: updatedOffer.designerPrice,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(updatedOffer, 'designer_countered', designerId, {
+      status: updatedOffer.status,
+      designerPrice: updatedOffer.designerPrice,
+      awaitingResponseFrom: updatedOffer.awaitingResponseFrom,
     });
 
     return updatedOffer;
@@ -403,6 +505,23 @@ class OfferService {
         },
         design: true,
       },
+    });
+
+    await this.notifyCounterparty(updatedOffer, customerId, {
+      type: 'OFFER_CUSTOMER_COUNTERED',
+      action: 'customer_countered',
+      title: 'Customer Counter Offer',
+      message: `${updatedOffer.customer.fullName} sent a new counter offer.`,
+      payload: {
+        status: updatedOffer.status,
+        customerPrice: updatedOffer.customerPrice,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(updatedOffer, 'customer_countered', customerId, {
+      status: updatedOffer.status,
+      customerPrice: updatedOffer.customerPrice,
+      awaitingResponseFrom: updatedOffer.awaitingResponseFrom,
     });
 
     return updatedOffer;
@@ -481,6 +600,21 @@ class OfferService {
       },
     });
 
+    await this.notifyCounterparty(updatedOffer, customerId, {
+      type: 'OFFER_COUNTER_ACCEPTED',
+      action: 'counter_accepted',
+      title: 'Counter Offer Accepted',
+      message: `${updatedOffer.customer.fullName} accepted your counter offer.`,
+      payload: {
+        status: updatedOffer.status,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(updatedOffer, 'counter_accepted', customerId, {
+      status: updatedOffer.status,
+      finalPrice: updatedOffer.finalPrice,
+    });
+
     return updatedOffer;
   }
 
@@ -515,6 +649,21 @@ class OfferService {
         designer: true,
         design: true,
       },
+    });
+
+    await this.notifyCounterparty(updatedOffer, customerId, {
+      type: 'OFFER_COUNTER_DECLINED',
+      action: 'counter_declined',
+      title: 'Counter Offer Declined',
+      message: `${updatedOffer.customer.fullName} declined your counter offer.`,
+      payload: {
+        status: updatedOffer.status,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(updatedOffer, 'counter_declined', customerId, {
+      status: updatedOffer.status,
+      awaitingResponseFrom: updatedOffer.awaitingResponseFrom,
     });
 
     return updatedOffer;
@@ -554,6 +703,21 @@ class OfferService {
       },
     });
 
+    await this.notifyCounterparty(updatedOffer, designerId, {
+      type: 'OFFER_REJECTED',
+      action: 'offer_rejected',
+      title: 'Offer Rejected',
+      message: `${updatedOffer.designer.brandName || updatedOffer.designer.fullName} rejected your offer.`,
+      payload: {
+        status: updatedOffer.status,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(updatedOffer, 'offer_rejected', designerId, {
+      status: updatedOffer.status,
+      awaitingResponseFrom: updatedOffer.awaitingResponseFrom,
+    });
+
     return updatedOffer;
   }
 
@@ -587,6 +751,20 @@ class OfferService {
         designer: true,
         design: true,
       },
+    });
+
+    await this.notifyCounterparty(updatedOffer, customerId, {
+      type: 'OFFER_WITHDRAWN',
+      action: 'offer_withdrawn',
+      title: 'Offer Withdrawn',
+      message: `${updatedOffer.customer.fullName} withdrew this offer.`,
+      payload: {
+        status: updatedOffer.status,
+      },
+    });
+
+    this.publishOfferRealtimeToParticipants(updatedOffer, 'offer_withdrawn', customerId, {
+      status: updatedOffer.status,
     });
 
     return updatedOffer;

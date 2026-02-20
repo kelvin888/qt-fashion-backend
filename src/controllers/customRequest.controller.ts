@@ -1,7 +1,56 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { notificationService } from '../services/notification.service';
+import { realtimeEventService } from '../services/realtime-event.service';
 
 const prisma = new PrismaClient();
+
+const utcStartOfDay = (date: Date) =>
+  new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+
+const addDaysUtc = (date: Date, days: number) =>
+  new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+
+const notifyAndBroadcastCustomRequest = async ({
+  recipientUserId,
+  actorUserId,
+  type,
+  action,
+  requestId,
+  title,
+  message,
+  payload,
+}: {
+  recipientUserId: string;
+  actorUserId?: string;
+  type: string;
+  action: string;
+  requestId: string;
+  title: string;
+  message: string;
+  payload?: Record<string, unknown>;
+}) => {
+  await notificationService.notifyUser({
+    userId: recipientUserId,
+    type,
+    title,
+    message,
+    data: {
+      requestId,
+      ...(payload || {}),
+    },
+    realtime: {
+      domain: 'custom_request',
+      action,
+      entityId: requestId,
+      actorUserId,
+      payload: {
+        requestId,
+        ...(payload || {}),
+      },
+    },
+  });
+};
 
 /**
  * Create a new custom request
@@ -289,6 +338,13 @@ export const updateCustomRequest = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Not authorized to update this request' });
     }
 
+    const participantBids = await prisma.customRequestBid.findMany({
+      where: { requestId: id },
+      select: {
+        designerId: true,
+      },
+    });
+
     const updatedRequest = await prisma.customRequest.update({
       where: { id },
       data: {
@@ -303,6 +359,40 @@ export const updateCustomRequest = async (req: Request, res: Response) => {
             profileImage: true,
           },
         },
+      },
+    });
+
+    const recipientDesignerIds = Array.from(new Set(participantBids.map((bid) => bid.designerId)));
+    const shouldNotifyDesigners = status === 'CLOSED' || status === 'CANCELLED';
+
+    if (shouldNotifyDesigners) {
+      await Promise.allSettled(
+        recipientDesignerIds.map((designerId) =>
+          notifyAndBroadcastCustomRequest({
+            recipientUserId: designerId,
+            actorUserId: userId,
+            type: 'CUSTOM_REQUEST_STATUS_CHANGED',
+            action: 'status_changed',
+            requestId: id,
+            title: 'Custom Request Updated',
+            message: `"${existingRequest.title}" is now ${status.toLowerCase()}.`,
+            payload: {
+              status,
+            },
+          })
+        )
+      );
+    }
+
+    realtimeEventService.publishToUsers([userId, ...recipientDesignerIds], {
+      type: 'CUSTOM_REQUEST_STATUS_CHANGED',
+      domain: 'custom_request',
+      action: 'status_changed',
+      entityId: id,
+      actorUserId: userId,
+      payload: {
+        requestId: id,
+        status,
       },
     });
 
@@ -367,12 +457,6 @@ export const submitBid = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid completion date format' });
     }
 
-    const utcStartOfDay = (date: Date) =>
-      new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
-
-    const addDaysUtc = (date: Date, days: number) =>
-      new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
-
     // Validate completion date is at least 3 days from now
     const completionDay = utcStartOfDay(completionDate);
     const minCompletionDay = addDaysUtc(utcStartOfDay(new Date()), 3);
@@ -430,10 +514,223 @@ export const submitBid = async (req: Request, res: Response) => {
       },
     });
 
+    await notifyAndBroadcastCustomRequest({
+      recipientUserId: customRequest.customerId,
+      actorUserId: userId,
+      type: 'CUSTOM_REQUEST_NEW_BID',
+      action: 'bid_submitted',
+      requestId,
+      title: 'New Bid Received',
+      message: `You received a new bid for "${customRequest.title}".`,
+      payload: {
+        bidId: bid.id,
+        designerId: userId,
+      },
+    });
+
+    realtimeEventService.publishToUser(userId, {
+      type: 'CUSTOM_REQUEST_BID_SUBMITTED',
+      domain: 'custom_request',
+      action: 'bid_submitted',
+      entityId: requestId,
+      actorUserId: userId,
+      payload: {
+        requestId,
+        bidId: bid.id,
+      },
+    });
+
     res.status(201).json(bid);
   } catch (error: any) {
     console.error('Error submitting bid:', error);
     res.status(500).json({ error: 'Failed to submit bid' });
+  }
+};
+
+/**
+ * Update a designer's bid on a custom request
+ * PATCH /api/custom-requests/:requestId/bids/:bidId
+ */
+export const updateBid = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { requestId, bidId } = req.params;
+    const { price, timeline, pitch, portfolioImages, deadlineNotes } = req.body;
+
+    const customRequest = await prisma.customRequest.findUnique({ where: { id: requestId } });
+    if (!customRequest) {
+      return res.status(404).json({ error: 'Custom request not found' });
+    }
+
+    if (customRequest.status !== 'OPEN') {
+      return res.status(400).json({ error: 'This request is no longer accepting bid updates' });
+    }
+
+    const existingBid = await prisma.customRequestBid.findUnique({ where: { id: bidId } });
+    if (!existingBid || existingBid.requestId !== requestId) {
+      return res.status(404).json({ error: 'Bid not found' });
+    }
+
+    if (existingBid.designerId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to update this bid' });
+    }
+
+    if (existingBid.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Only pending bids can be updated' });
+    }
+
+    if (!price || !timeline || !pitch) {
+      return res.status(400).json({
+        error: 'Missing required fields: price, timeline, pitch',
+      });
+    }
+
+    let completionDate: Date;
+    try {
+      completionDate = new Date(timeline);
+      if (isNaN(completionDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid completion date format' });
+      }
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid completion date format' });
+    }
+
+    const completionDay = utcStartOfDay(completionDate);
+    const minCompletionDay = addDaysUtc(utcStartOfDay(new Date()), 3);
+    if (completionDay.getTime() < minCompletionDay.getTime()) {
+      return res.status(400).json({
+        error: 'Completion date must be at least 3 days from now',
+      });
+    }
+
+    let computedCanMeetDeadline: boolean | null = null;
+    if (customRequest.deadline) {
+      const requestDeadlineDay = utcStartOfDay(new Date(customRequest.deadline));
+      const deliveryDay = addDaysUtc(completionDay, 3);
+      computedCanMeetDeadline = deliveryDay.getTime() <= requestDeadlineDay.getTime();
+    }
+
+    const updatedBid = await prisma.customRequestBid.update({
+      where: { id: bidId },
+      data: {
+        price: parseFloat(price),
+        timeline,
+        pitch,
+        portfolioImages: portfolioImages || [],
+        deadlineNotes: deadlineNotes || null,
+        canMeetDeadline: computedCanMeetDeadline,
+      },
+      include: {
+        designer: {
+          select: {
+            id: true,
+            fullName: true,
+            brandName: true,
+            brandLogo: true,
+            profileImage: true,
+          },
+        },
+      },
+    });
+
+    await notifyAndBroadcastCustomRequest({
+      recipientUserId: customRequest.customerId,
+      actorUserId: userId,
+      type: 'CUSTOM_REQUEST_BID_UPDATED',
+      action: 'bid_updated',
+      requestId,
+      title: 'Bid Updated',
+      message: `A designer updated their bid for "${customRequest.title}".`,
+      payload: {
+        bidId,
+      },
+    });
+
+    realtimeEventService.publishToUser(userId, {
+      type: 'CUSTOM_REQUEST_BID_UPDATED',
+      domain: 'custom_request',
+      action: 'bid_updated',
+      entityId: requestId,
+      actorUserId: userId,
+      payload: {
+        requestId,
+        bidId,
+      },
+    });
+
+    res.json(updatedBid);
+  } catch (error: any) {
+    console.error('Error updating bid:', error);
+    res.status(500).json({ error: 'Failed to update bid' });
+  }
+};
+
+/**
+ * Withdraw a designer's pending bid from a custom request
+ * DELETE /api/custom-requests/:requestId/bids/:bidId
+ */
+export const withdrawBid = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { requestId, bidId } = req.params;
+
+    const customRequest = await prisma.customRequest.findUnique({ where: { id: requestId } });
+    if (!customRequest) {
+      return res.status(404).json({ error: 'Custom request not found' });
+    }
+
+    const existingBid = await prisma.customRequestBid.findUnique({ where: { id: bidId } });
+    if (!existingBid || existingBid.requestId !== requestId) {
+      return res.status(404).json({ error: 'Bid not found' });
+    }
+
+    if (existingBid.designerId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to withdraw this bid' });
+    }
+
+    if (existingBid.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Only pending bids can be withdrawn' });
+    }
+
+    await prisma.customRequestBid.delete({ where: { id: bidId } });
+
+    await notifyAndBroadcastCustomRequest({
+      recipientUserId: customRequest.customerId,
+      actorUserId: userId,
+      type: 'CUSTOM_REQUEST_BID_WITHDRAWN',
+      action: 'bid_withdrawn',
+      requestId,
+      title: 'Bid Withdrawn',
+      message: `A designer withdrew their bid for "${customRequest.title}".`,
+      payload: {
+        bidId,
+      },
+    });
+
+    realtimeEventService.publishToUser(userId, {
+      type: 'CUSTOM_REQUEST_BID_WITHDRAWN',
+      domain: 'custom_request',
+      action: 'bid_withdrawn',
+      entityId: requestId,
+      actorUserId: userId,
+      payload: {
+        requestId,
+        bidId,
+      },
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Error withdrawing bid:', error);
+    res.status(500).json({ error: 'Failed to withdraw bid' });
   }
 };
 
@@ -667,6 +964,73 @@ export const acceptBid = async (req: Request, res: Response) => {
 
       return { acceptedBid, updatedRequest, offer };
     });
+
+    const rejectedDesignerIds = Array.from(
+      new Set(
+        customRequest.bids
+          .filter((existingBid) => existingBid.id !== bidId)
+          .map((existingBid) => existingBid.designerId)
+      )
+    );
+
+    await Promise.allSettled([
+      notifyAndBroadcastCustomRequest({
+        recipientUserId: result.acceptedBid.designerId,
+        actorUserId: userId,
+        type: 'CUSTOM_REQUEST_BID_ACCEPTED',
+        action: 'bid_accepted',
+        requestId,
+        title: 'Bid Accepted',
+        message: `Your bid for "${customRequest.title}" was accepted.`,
+        payload: {
+          bidId,
+          offerId: result.offer.id,
+        },
+      }),
+      notifyAndBroadcastCustomRequest({
+        recipientUserId: userId,
+        actorUserId: userId,
+        type: 'CUSTOM_REQUEST_PAYMENT_READY',
+        action: 'payment_ready',
+        requestId,
+        title: 'Proceed to Payment',
+        message: `Your selected bid for "${customRequest.title}" is ready for payment.`,
+        payload: {
+          bidId,
+          offerId: result.offer.id,
+        },
+      }),
+      ...rejectedDesignerIds.map((designerId) =>
+        notifyAndBroadcastCustomRequest({
+          recipientUserId: designerId,
+          actorUserId: userId,
+          type: 'CUSTOM_REQUEST_BID_REJECTED',
+          action: 'bid_rejected',
+          requestId,
+          title: 'Bid Not Selected',
+          message: `Another bid was selected for "${customRequest.title}".`,
+          payload: {
+            bidId,
+          },
+        })
+      ),
+    ]);
+
+    realtimeEventService.publishToUsers(
+      [userId, ...rejectedDesignerIds, result.acceptedBid.designerId],
+      {
+        type: 'CUSTOM_REQUEST_STATUS_CHANGED',
+        domain: 'custom_request',
+        action: 'status_changed',
+        entityId: requestId,
+        actorUserId: userId,
+        payload: {
+          requestId,
+          status: 'IN_PROGRESS',
+          selectedBidId: bidId,
+        },
+      }
+    );
 
     // Backwards-compatible response shape: keep top-level fields and also provide
     // a stable wrapper for newer clients.
