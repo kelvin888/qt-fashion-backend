@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { randomUUID } from 'crypto';
 
-export type RealtimeDomain = 'custom_request' | 'offer' | 'notification';
+export type RealtimeDomain = 'custom_request' | 'offer' | 'notification' | 'order';
 
 export interface RealtimeEventPayload {
   [key: string]: unknown;
