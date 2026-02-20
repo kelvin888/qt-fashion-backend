@@ -144,7 +144,6 @@ class RealtimeEventService {
   private writeEvent(response: Response, event: RealtimeEvent): void {
     const eventId = randomUUID();
     response.write(`id: ${eventId}\n`);
-    response.write(`event: ${event.type}\n`);
     response.write(`data: ${JSON.stringify(event)}\n\n`);
   }
 }
