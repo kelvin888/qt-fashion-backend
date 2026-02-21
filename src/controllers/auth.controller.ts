@@ -179,7 +179,7 @@ export const removePushToken = async (req: Request, res: Response, next: NextFun
  */
 export const createAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password, fullName, secretKey } = req.body;
+    const { email, password, fullName, name, secretKey } = req.body;
 
     // Validate secret key exists in environment
     const expectedSecret = process.env.ADMIN_CREATION_SECRET;
@@ -192,8 +192,11 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
+    // Get secret from header or body (accept both)
+    const providedSecret = req.headers['admin-creation-secret'] || secretKey;
+
     // Validate provided secret matches environment
-    if (secretKey !== expectedSecret) {
+    if (providedSecret !== expectedSecret) {
       console.warn('🚨 Invalid admin creation attempt', {
         ip: req.ip,
         timestamp: new Date().toISOString(),
@@ -205,11 +208,14 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
+    // Accept both 'name' and 'fullName' fields
+    const adminName = fullName || name;
+
     // Validate required fields
-    if (!email || !password || !fullName) {
+    if (!email || !password || !adminName) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password, and full name are required',
+        message: 'Email, password, and name are required',
       });
     }
 
@@ -245,7 +251,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
     const result = await authService.createAdminUser({
       email,
       password,
-      fullName,
+      fullName: adminName,
     });
 
     console.log('✅ Admin user created successfully', {

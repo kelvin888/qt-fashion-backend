@@ -7,10 +7,22 @@ import express from 'express';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 import * as settingsController from '../controllers/admin/settings.controller';
 import * as feesController from '../controllers/admin/fees.controller';
+import { createAdmin } from '../controllers/auth.controller';
 
 const router = express.Router();
 
-// All admin routes require authentication and ADMIN role
+// ========================================
+// ADMIN CREATION (NO AUTH REQUIRED)
+// ========================================
+
+/**
+ * POST /api/admin/create
+ * Create first admin user (requires Admin-Creation-Secret)
+ * This route is NOT protected by auth middleware
+ */
+router.post('/create', createAdmin);
+
+// All other admin routes require authentication and ADMIN role
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
 
