@@ -10,6 +10,8 @@ import walletService from './wallet.service';
 import { notificationService } from './notification.service';
 import { realtimeEventService } from './realtime-event.service';
 import feeService from './fee.service';
+import adminEventsService from './admin-events.service';
+import adminEventsService from './admin-events.service';
 
 interface ProductionStep {
   step: string;
@@ -174,6 +176,16 @@ class OrderService {
         offer: true,
       },
     });
+
+    // Emit SSE event to admins
+    adminEventsService.emitNewOrder({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customer.fullName,
+      designerName: order.designer.brandName || order.designer.fullName,
+      amount: order.finalPrice,
+    });
+    adminEventsService.emitStatsUpdated('new_order');
 
     return order;
   }
@@ -381,6 +393,16 @@ class OrderService {
       });
     }
 
+    // Emit SSE event to admins
+    adminEventsService.emitNewOrder({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customer.fullName,
+      designerName: order.designer.brandName || order.designer.fullName,
+      amount: order.finalPrice,
+    });
+    adminEventsService.emitStatsUpdated('new_order');
+
     return order;
   }
 
@@ -541,6 +563,15 @@ class OrderService {
         },
       },
     });
+
+    // Emit SSE event to admins
+    adminEventsService.emitOrderUpdated({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      oldStatus: existing.status,
+      newStatus: order.status,
+    });
+    adminEventsService.emitStatsUpdated('order_status_changed');
 
     return order;
   }

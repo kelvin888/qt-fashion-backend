@@ -9,6 +9,7 @@ import * as settingsController from '../controllers/admin/settings.controller';
 import * as feesController from '../controllers/admin/fees.controller';
 import * as usersController from '../controllers/admin/users.controller';
 import * as ordersController from '../controllers/admin/orders.controller';
+import * as eventsController from '../controllers/admin/events.controller';
 import { createAdmin } from '../controllers/auth.controller';
 
 const router = express.Router();
@@ -27,6 +28,22 @@ router.post('/create', createAdmin);
 // All other admin routes require authentication and ADMIN role
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
+
+// ========================================
+// SERVER-SENT EVENTS (SSE) ROUTES
+// ========================================
+
+/**
+ * GET /api/admin/events
+ * Stream real-time events via SSE
+ */
+router.get('/events', eventsController.streamEvents);
+
+/**
+ * GET /api/admin/events/status
+ * Get active SSE connections status
+ */
+router.get('/events/status', eventsController.getConnectionStatus);
 
 // ========================================
 // PLATFORM SETTINGS ROUTES

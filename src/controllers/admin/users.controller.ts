@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../config/database';
+import adminEventsService from '../../services/admin-events.service';
 
 /**
  * Get all users with filters and pagination
@@ -221,6 +222,16 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
         accountVerified: true,
       },
     });
+
+    // Emit SSE event to admins
+    adminEventsService.emitUserUpdated({
+      userId: user.id,
+      email: user.email,
+      field: 'accountVerified',
+      oldValue: !accountVerified,
+      newValue: accountVerified,
+    });
+    adminEventsService.emitStatsUpdated('user_status_changed');
 
     console.log(
       `⚙️ User ${id} status updated by admin: ${accountVerified ? 'Activated' : 'Suspended'}`,

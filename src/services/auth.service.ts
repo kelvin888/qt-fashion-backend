@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { PrismaClient, UserRole } from '@prisma/client';
 import { generateToken } from '../utils/jwt';
 import { validateAndNormalizeEmail } from '../utils/validation';
+import adminEventsService from './admin-events.service';
 
 const prisma = new PrismaClient();
 
