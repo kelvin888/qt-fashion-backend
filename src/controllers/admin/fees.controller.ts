@@ -356,9 +356,11 @@ export const getFeeAnalytics = async (req: Request, res: Response, next: NextFun
       },
     });
 
-    const averageFeePercentage = ordersWithFees.length > 0
-      ? ordersWithFees.reduce((sum, order) => sum + (order.feePercentageApplied || 0), 0) / ordersWithFees.length
-      : 0;
+    const averageFeePercentage =
+      ordersWithFees.length > 0
+        ? ordersWithFees.reduce((sum, order) => sum + (order.feePercentageApplied || 0), 0) /
+          ordersWithFees.length
+        : 0;
 
     // Get designer tier distribution
     const designers = await prisma.user.findMany({
@@ -374,10 +376,12 @@ export const getFeeAnalytics = async (req: Request, res: Response, next: NextFun
     }
 
     // Convert tier distribution to array format
-    const tierDistributionArray = Object.entries(tierDistribution).map(([tierName, designerCount]) => ({
-      tierName,
-      designerCount,
-    }));
+    const tierDistributionArray = Object.entries(tierDistribution).map(
+      ([tierName, designerCount]) => ({
+        tierName,
+        designerCount,
+      })
+    );
 
     res.status(200).json({
       totalRevenue: revenue._sum.platformFee || 0,
