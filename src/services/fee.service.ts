@@ -50,12 +50,7 @@ class FeeService {
     // 3. Check designer tier based on completed orders
     const tier = await this.getDesignerTier(designerId);
     if (tier) {
-      return this.buildFeeCalculation(
-        tier.feePercentage,
-        orderTotal,
-        'TIER',
-        `${tier.name} Tier`
-      );
+      return this.buildFeeCalculation(tier.feePercentage, orderTotal, 'TIER', `${tier.name} Tier`);
     }
 
     // 4. Fall back to default platform fee

@@ -205,6 +205,100 @@ class AuthService {
       data: { expoPushToken: null },
     });
   }
+
+  /**
+   * Create admin user (one-time use)
+   * @param data Admin user details
+   * @returns User and JWT token
+   * @throws Error if admin already exists or user with email exists
+   */
+  async createAdminUser(data: {
+    email: string;
+    password: string;
+    fullName: string;
+  }): Promise<AuthResponse> {
+    // Normalize email
+    const normalizedEmail = validateAndNormalizeEmail(data.email);
+
+    // Check if admin already exists
+    const existingAdmin = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+    });
+
+    if (existingAdmin) {
+      throw new Error(
+        'Admin user already exists. Please contact support if you need to create additional admins.'
+      );
+    }
+
+    // Check if user with this email exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      throw new Error('User with this email already exists');
+    }
+
+    // Hash password with high cost factor for admin accounts
+    const hashedPassword = await bcrypt.hash(data.password, 12);
+
+    // Create admin user
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        password: hashedPassword,
+        fullName: data.fullName,
+        role: 'ADMIN',
+        accountVerified: true,
+      },
+    });
+
+    // Generate JWT token
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        gender: user.gender,
+        profileImage: user.profileImage,
+        brandName: user.brandName,
+        brandLogo: user.brandLogo,
+        brandBanner: user.brandBanner,
+        bio: user.bio,
+        createdAt: user.createdAt.toISOString(),
+      },
+      token,
+      expiresIn: 604800, // 7 days in seconds
+    };
+  }
+
+  /**
+   * Get admin creation endpoint status
+   * @returns Status information
+   */
+  async getAdminCreationStatus(): Promise<{
+    isEnabled: boolean;
+    adminCount: number;
+  }> {
+    const isEnabled = !!process.env.ADMIN_CREATION_SECRET;
+    const adminCount = await prisma.user.count({
+      where: { role: 'ADMIN' },
+    });
+
+    return {
+      isEnabled,
+      adminCount,
+    };
+  }
 }
 
 export default new AuthService();

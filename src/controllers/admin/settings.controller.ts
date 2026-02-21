@@ -52,13 +52,7 @@ export const updateSetting = async (req: Request, res: Response, next: NextFunct
       }
     }
 
-    const setting = await settingsService.updateSetting(
-      key,
-      value,
-      adminId,
-      reason,
-      ipAddress
-    );
+    const setting = await settingsService.updateSetting(key, value, adminId, reason, ipAddress);
 
     res.status(200).json({
       success: true,
@@ -78,10 +72,7 @@ export const getAuditHistory = async (req: Request, res: Response, next: NextFun
     const { settingKey, limit } = req.query;
     const parsedLimit = limit ? parseInt(limit as string) : 50;
 
-    const history = await settingsService.getSettingAuditHistory(
-      settingKey as string,
-      parsedLimit
-    );
+    const history = await settingsService.getSettingAuditHistory(settingKey as string, parsedLimit);
 
     res.status(200).json({
       success: true,

@@ -12,7 +12,7 @@ async function main() {
 
   // Seed default platform settings
   console.log('📝 Creating platform settings...');
-  
+
   await prisma.platformSettings.upsert({
     where: { key: 'platform_fee_percentage' },
     update: {},
@@ -47,7 +47,7 @@ async function main() {
       name: 'Bronze',
       minOrders: 0,
       maxOrders: 9,
-      feePercentage: 0.10, // 10%
+      feePercentage: 0.1, // 10%
       priority: 1,
     },
     {

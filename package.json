@@ -12,7 +12,9 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "create-admin": "bash scripts/create-admin.sh",
+    "create-admin:prod": "bash scripts/create-admin.sh production"
   },
   "keywords": [
     "fashion",

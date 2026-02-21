@@ -120,11 +120,7 @@ export const deleteFeeTier = async (req: Request, res: Response, next: NextFunct
 /**
  * List all designer overrides
  */
-export const listDesignerOverrides = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const listDesignerOverrides = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const overrides = await feeService.listDesignerOverrides();
 
@@ -140,11 +136,7 @@ export const listDesignerOverrides = async (
 /**
  * Create a designer fee override
  */
-export const createDesignerOverride = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const createDesignerOverride = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { designerId, feePercentage, effectiveFrom, effectiveUntil, reason } = req.body;
     const adminId = req.user!.id;
@@ -198,11 +190,7 @@ export const createDesignerOverride = async (
 /**
  * Delete a designer override
  */
-export const deleteDesignerOverride = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const deleteDesignerOverride = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -222,11 +210,7 @@ export const deleteDesignerOverride = async (
 /**
  * List all promotional periods
  */
-export const listPromotionalPeriods = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const listPromotionalPeriods = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const promotions = await feeService.listPromotionalPeriods();
 
@@ -242,11 +226,7 @@ export const listPromotionalPeriods = async (
 /**
  * Create a promotional period
  */
-export const createPromotionalPeriod = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const createPromotionalPeriod = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, feePercentage, startDate, endDate, applicableToAll } = req.body;
     const adminId = req.user!.id;
@@ -298,11 +278,7 @@ export const createPromotionalPeriod = async (
 /**
  * Toggle promotional period active status
  */
-export const togglePromotionalPeriod = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const togglePromotionalPeriod = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
