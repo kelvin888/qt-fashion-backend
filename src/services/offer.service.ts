@@ -20,6 +20,7 @@ export interface CreateOfferData {
 export interface CounterOfferData {
   designerPrice: number;
   designerNotes?: string;
+  designerDeadline?: Date; // Designer can propose different deadline
 }
 
 class OfferService {
@@ -330,6 +331,8 @@ class OfferService {
           offer.status === OfferStatus.COUNTERED && !offer.designerPrice
             ? offer.customerPrice
             : offer.designerPrice || offer.customerPrice,
+        // Set agreed deadline: use designer's proposed deadline if exists, otherwise customer's
+        agreedDeadline: offer.designerDeadline || offer.deadline,
         acceptedAt: new Date(),
         awaitingResponseFrom: null, // Negotiation complete
       },
@@ -417,13 +420,29 @@ class OfferService {
       });
       throw new Error('Offer has expired');
     }
+    // Validate designer deadline if provided
+    if (data.designerDeadline) {
+      const minDeadlineDate = new Date();
+      minDeadlineDate.setDate(minDeadlineDate.getDate() + 6);
 
+      if (data.designerDeadline < minDeadlineDate) {
+        const formattedMinDate = minDeadlineDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+        throw new Error(
+          `Proposed deadline must be at least ${formattedMinDate} to allow 6 days for production and shipping`
+        );
+      }
+    }
     const updatedOffer = await prisma.offer.update({
       where: { id: offerId },
       data: {
         status: OfferStatus.COUNTERED,
         designerPrice: data.designerPrice,
         designerNotes: data.designerNotes,
+        designerDeadline: data.designerDeadline,
         awaitingResponseFrom: ResponsibleParty.CUSTOMER, // Waiting for customer response
       },
       include: {
@@ -472,7 +491,8 @@ class OfferService {
     offerId: string,
     customerId: string,
     newPrice: number,
-    notes?: string
+    notes?: string,
+    newDeadline?: Date
   ) {
     const offer = await prisma.offer.findUnique({
       where: { id: offerId },
@@ -515,12 +535,31 @@ class OfferService {
       throw new Error('Offer has expired');
     }
 
+    // Validate customer deadline if provided
+    if (newDeadline) {
+      const minDeadlineDate = new Date();
+      minDeadlineDate.setDate(minDeadlineDate.getDate() + 6);
+
+      if (newDeadline < minDeadlineDate) {
+        const formattedMinDate = minDeadlineDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+        throw new Error(
+          `Proposed deadline must be at least ${formattedMinDate} to allow 6 days for production and shipping`
+        );
+      }
+    }
+
     const updatedOffer = await prisma.offer.update({
       where: { id: offerId },
       data: {
         status: OfferStatus.COUNTERED,
         customerPrice: newPrice,
         notes: notes || offer.notes,
+        deadline: newDeadline || offer.deadline, // Update customer's proposed deadline
+        designerDeadline: null, // Clear designer's counter-deadline (customer is countering)
         awaitingResponseFrom: ResponsibleParty.DESIGNER, // Waiting for designer response
       },
       include: {
@@ -613,6 +652,8 @@ class OfferService {
       data: {
         status: OfferStatus.ACCEPTED,
         finalPrice: offer.designerPrice,
+        // Set agreed deadline: use designer's proposed deadline if exists, otherwise customer's
+        agreedDeadline: offer.designerDeadline || offer.deadline,
         acceptedAt: new Date(),
         awaitingResponseFrom: null, // Negotiation complete
       },

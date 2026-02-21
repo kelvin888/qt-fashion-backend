@@ -11,7 +11,6 @@ import { notificationService } from './notification.service';
 import { realtimeEventService } from './realtime-event.service';
 import feeService from './fee.service';
 import adminEventsService from './admin-events.service';
-import adminEventsService from './admin-events.service';
 
 interface ProductionStep {
   step: string;
@@ -336,7 +335,7 @@ class OrderService {
         productionSteps: productionSteps as any,
         paymentTransactionId: payment.id,
         shippingAddressId: address.id,
-        deadline: offer.deadline || null,
+        deadline: offer.agreedDeadline || offer.deadline || null, // Use negotiated deadline if exists
       },
       include: {
         customer: {

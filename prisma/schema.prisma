@@ -226,7 +226,11 @@ model Offer {
   // Additional details
   notes         String? // Customer's notes/requirements
   designerNotes String? // Designer's response notes
-  deadline      DateTime? // Expected delivery deadline (from custom request or customer request)
+  
+  // Negotiable deadlines
+  deadline          DateTime? // Customer's proposed delivery deadline
+  designerDeadline  DateTime? // Designer's counter-proposed deadline (if countered)
+  agreedDeadline    DateTime? // Final binding deadline once offer accepted
 
   // Timestamps
   expiresAt  DateTime? // Offer expiration

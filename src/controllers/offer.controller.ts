@@ -97,7 +97,7 @@ export const acceptOffer = async (req: Request, res: Response, next: NextFunctio
 export const counterOffer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { designerPrice, designerNotes } = req.body;
+    const { designerPrice, designerNotes, designerDeadline } = req.body;
 
     if (!designerPrice) {
       return res.status(400).json({
@@ -108,6 +108,7 @@ export const counterOffer = async (req: Request, res: Response, next: NextFuncti
     const offer = await offerService.counterOffer(id, req.user!.id, {
       designerPrice: parseFloat(designerPrice),
       designerNotes,
+      designerDeadline: designerDeadline ? new Date(designerDeadline) : undefined,
     });
 
     res.status(200).json(offer);
@@ -119,7 +120,7 @@ export const counterOffer = async (req: Request, res: Response, next: NextFuncti
 export const customerCounterOffer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { customerPrice, notes } = req.body;
+    const { customerPrice, notes, deadline } = req.body;
 
     if (!customerPrice) {
       return res.status(400).json({
@@ -131,7 +132,8 @@ export const customerCounterOffer = async (req: Request, res: Response, next: Ne
       id,
       req.user!.id,
       parseFloat(customerPrice),
-      notes
+      notes,
+      deadline ? new Date(deadline) : undefined
     );
 
     res.status(200).json(offer);
