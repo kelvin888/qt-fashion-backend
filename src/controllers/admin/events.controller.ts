@@ -34,7 +34,6 @@ export const streamEvents = async (req: Request, res: Response, next: NextFuncti
       console.error('SSE connection error:', error);
       adminEventsService.removeClient(clientId);
     });
-
   } catch (error: any) {
     console.error('Error establishing SSE connection:', error);
     next(error);

@@ -41,7 +41,9 @@ class AdminEventsService {
 
     this.clients.set(clientId, client);
 
-    console.log(`✅ Admin SSE client connected: ${adminId} (${clientId}). Total: ${this.clients.size}`);
+    console.log(
+      `✅ Admin SSE client connected: ${adminId} (${clientId}). Total: ${this.clients.size}`
+    );
 
     // Send initial connection event
     this.sendToClient(clientId, {
@@ -177,18 +179,15 @@ class AdminEventsService {
     };
 
     this.broadcast(event);
-    console.log(`📝 Order updated event emitted: ${data.orderNumber} (${data.oldStatus} → ${data.newStatus})`);
+    console.log(
+      `📝 Order updated event emitted: ${data.orderNumber} (${data.oldStatus} → ${data.newStatus})`
+    );
   }
 
   /**
    * Emit new user event
    */
-  emitNewUser(data: {
-    userId: string;
-    email: string;
-    fullName: string;
-    role: string;
-  }): void {
+  emitNewUser(data: { userId: string; email: string; fullName: string; role: string }): void {
     const event: NewUserEvent = {
       id: uuidv4(),
       type: AdminEventType.NEW_USER,
@@ -238,11 +237,7 @@ class AdminEventsService {
   /**
    * Emit system alert
    */
-  emitSystemAlert(
-    level: 'info' | 'warning' | 'error',
-    message: string,
-    details?: any
-  ): void {
+  emitSystemAlert(level: 'info' | 'warning' | 'error', message: string, details?: any): void {
     const event: SystemAlertEvent = {
       id: uuidv4(),
       type: AdminEventType.SYSTEM_ALERT,
