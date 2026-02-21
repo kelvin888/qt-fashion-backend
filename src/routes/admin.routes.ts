@@ -7,6 +7,8 @@ import express from 'express';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 import * as settingsController from '../controllers/admin/settings.controller';
 import * as feesController from '../controllers/admin/fees.controller';
+import * as usersController from '../controllers/admin/users.controller';
+import * as ordersController from '../controllers/admin/orders.controller';
 import { createAdmin } from '../controllers/auth.controller';
 
 const router = express.Router();
@@ -127,8 +129,58 @@ router.post('/fees/promotions', feesController.createPromotionalPeriod);
 router.put('/fees/promotions/:id/toggle', feesController.togglePromotionalPeriod);
 
 // ========================================
-// ANALYTICS ROUTES
+// USER MANAGEMENT ROUTES
 // ========================================
+
+/**
+ * GET /api/admin/users
+ * List all users with pagination and filters
+ */
+router.get('/users', usersController.getAllUsers);
+
+/**
+ * GET /api/admin/users/stats
+ * Get user statistics
+ */
+router.get('/users/stats', usersController.getUserStats);
+
+/**
+ * GET /api/admin/users/:id
+ * Get user details by ID
+ */
+router.get('/users/:id', usersController.getUserById);
+
+/**
+ * PATCH /api/admin/users/:id/status
+ * Update user account status (suspend/activate)
+ */
+router.patch('/users/:id/status', usersController.updateUserStatus);
+
+// ========================================
+// ORDER MANAGEMENT ROUTES
+// ========================================
+
+/**
+ * GET /api/admin/orders
+ * List all orders with pagination and filters
+ */
+router.get('/orders', ordersController.getAllOrders);
+
+/**
+ * GET /api/admin/orders/stats
+ * Get order statistics
+ */
+router.get('/orders/stats', ordersController.getOrderStats);
+
+// ========================================
+// DASHBOARD & ANALYTICS ROUTES
+// ========================================
+
+/**
+ * GET /api/admin/dashboard/stats
+ * Get comprehensive dashboard statistics
+ */
+router.get('/dashboard/stats', ordersController.getDashboardStats);
 
 /**
  * GET /api/admin/analytics/revenue
