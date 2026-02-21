@@ -27,9 +27,14 @@ export const createOffer = async (req: Request, res: Response, next: NextFunctio
       sixDaysFromNow.setDate(sixDaysFromNow.getDate() + 6);
 
       if (deadlineDate < sixDaysFromNow) {
+        const minDateFormatted = sixDaysFromNow.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
         return res.status(400).json({
-          message:
-            'Deadline must be at least 6 days from now to allow time for production and shipping',
+          error: 'DEADLINE_TOO_SOON',
+          message: `Deadline must be at least ${minDateFormatted} to allow 6 days for production and shipping`,
         });
       }
     }
