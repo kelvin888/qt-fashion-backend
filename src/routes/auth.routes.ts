@@ -211,7 +211,7 @@ router.delete('/push-token', authenticate, removePushToken);
  *               email:
  *                 type: string
  *                 format: email
- *                 example: admin@qtfashion.com
+ *                 example: username@qtfashion.com
  *               password:
  *                 type: string
  *                 minLength: 12
