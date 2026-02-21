@@ -315,6 +315,12 @@ export const getFeeAnalytics = async (req: Request, res: Response, next: NextFun
   try {
     const { startDate, endDate } = req.query;
 
+    // Build date filter
+    const dateFilter = {
+      ...(startDate && { gte: new Date(startDate as string) }),
+      ...(endDate && { lte: new Date(endDate as string) }),
+    };
+
     // Get total revenue from fees
     const revenue = await prisma.order.aggregate({
       _sum: {
@@ -322,12 +328,37 @@ export const getFeeAnalytics = async (req: Request, res: Response, next: NextFun
       },
       where: {
         platformFee: { not: null },
-        paymentReleasedAt: {
-          ...(startDate && { gte: new Date(startDate as string) }),
-          ...(endDate && { lte: new Date(endDate as string) }),
-        },
+        ...(Object.keys(dateFilter).length > 0 && {
+          paymentReleasedAt: dateFilter,
+        }),
       },
     });
+
+    // Get total orders count
+    const orderCount = await prisma.order.count({
+      where: {
+        ...(Object.keys(dateFilter).length > 0 && {
+          createdAt: dateFilter,
+        }),
+      },
+    });
+
+    // Get average fee percentage
+    const ordersWithFees = await prisma.order.findMany({
+      where: {
+        feePercentageApplied: { not: null },
+        ...(Object.keys(dateFilter).length > 0 && {
+          createdAt: dateFilter,
+        }),
+      },
+      select: {
+        feePercentageApplied: true,
+      },
+    });
+
+    const averageFeePercentage = ordersWithFees.length > 0
+      ? ordersWithFees.reduce((sum, order) => sum + (order.feePercentageApplied || 0), 0) / ordersWithFees.length
+      : 0;
 
     // Get designer tier distribution
     const designers = await prisma.user.findMany({
@@ -342,12 +373,17 @@ export const getFeeAnalytics = async (req: Request, res: Response, next: NextFun
       tierDistribution[tierName] = (tierDistribution[tierName] || 0) + 1;
     }
 
+    // Convert tier distribution to array format
+    const tierDistributionArray = Object.entries(tierDistribution).map(([tierName, designerCount]) => ({
+      tierName,
+      designerCount,
+    }));
+
     res.status(200).json({
-      success: true,
-      data: {
-        totalRevenue: revenue._sum.platformFee || 0,
-        tierDistribution,
-      },
+      totalRevenue: revenue._sum.platformFee || 0,
+      totalOrders: orderCount,
+      averageFeePercentage,
+      tierDistribution: tierDistributionArray,
     });
   } catch (error: any) {
     next(error);

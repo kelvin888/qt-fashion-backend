@@ -53,6 +53,12 @@ router.get('/audit/settings', settingsController.getAuditHistory);
 // ========================================
 
 /**
+ * GET /api/admin/fees/analytics
+ * Get platform fee analytics
+ */
+router.get('/fees/analytics', feesController.getFeeAnalytics);
+
+/**
  * GET /api/admin/fees/tiers
  * List all fee tiers
  */
