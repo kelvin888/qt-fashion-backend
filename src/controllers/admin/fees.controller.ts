@@ -384,10 +384,13 @@ export const getFeeAnalytics = async (req: Request, res: Response, next: NextFun
     );
 
     res.status(200).json({
-      totalRevenue: revenue._sum.platformFee || 0,
-      totalOrders: orderCount,
-      averageFeePercentage,
-      tierDistribution: tierDistributionArray,
+      success: true,
+      data: {
+        totalRevenue: revenue._sum.platformFee || 0,
+        totalOrders: orderCount,
+        averageFeePercentage,
+        tierDistribution: tierDistributionArray,
+      },
     });
   } catch (error: any) {
     next(error);
