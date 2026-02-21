@@ -38,17 +38,19 @@ npm run create-admin:prod
    - Production: Deployed on Railway or hosting platform
 
 2. **Environment variable configured**
-   
+
    Add to `.env` (local) or environment settings (production):
+
    ```env
    ADMIN_CREATION_SECRET=your-super-secure-random-secret
    ```
 
 3. **Generate secure secret** (recommended):
+
    ```bash
    # macOS/Linux
    openssl rand -base64 32
-   
+
    # Node.js
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
@@ -61,14 +63,16 @@ Your admin password **MUST** include:
 - ✅ At least one uppercase letter (A-Z)
 - ✅ At least one lowercase letter (a-z)
 - ✅ At least one number (0-9)
-- ✅ At least one special character (!@#$%^&*(),.?":{}|<>)
+- ✅ At least one special character (!@#$%^&\*(),.?":{}|<>)
 
 **Examples of STRONG passwords:**
+
 - `Admin@QT2026!Secure`
 - `F@shion#Plat2026`
 - `Secure!Admin$2026`
 
 **Examples of WEAK passwords (DO NOT USE):**
+
 - `admin123` (too short, no special chars)
 - `AdminPassword` (no numbers or special chars)
 - `12345678` (no letters)
@@ -78,16 +82,19 @@ Your admin password **MUST** include:
 ### Method 1: Using Script (Recommended)
 
 **Local Development:**
+
 ```bash
 npm run create-admin
 ```
 
 **Production:**
+
 ```bash
 npm run create-admin:prod
 ```
 
 The script will:
+
 1. Prompt you for admin email, password, and full name
 2. Validate all inputs
 3. Create the admin user
@@ -97,6 +104,7 @@ The script will:
 ### Method 2: Using cURL
 
 **Local:**
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/create-admin \
   -H "Content-Type: application/json" \
@@ -109,6 +117,7 @@ curl -X POST http://localhost:5000/api/auth/create-admin \
 ```
 
 **Production (Railway):**
+
 ```bash
 curl -X POST https://qt-fashion-backend-production.up.railway.app/api/auth/create-admin \
   -H "Content-Type: application/json" \
@@ -125,6 +134,7 @@ curl -X POST https://qt-fashion-backend-production.up.railway.app/api/auth/creat
 1. **Create POST request** to `/api/auth/create-admin`
 
 2. **Set request body** (JSON):
+
    ```json
    {
      "email": "admin@qtfashion.com",
@@ -147,18 +157,21 @@ After creating your admin user, complete these steps **immediately**:
 #### 1. Remove Secret from Environment
 
 **Local Development:**
+
 ```bash
 # Edit .env file and remove or comment out:
 # ADMIN_CREATION_SECRET=...
 ```
 
 **Railway:**
+
 1. Go to Railway dashboard → Your project
 2. Navigate to "Variables" tab
 3. Delete `ADMIN_CREATION_SECRET`
 4. Redeploy service
 
 **Vercel/Other Platforms:**
+
 1. Go to environment settings
 2. Remove `ADMIN_CREATION_SECRET`
 3. Redeploy
@@ -205,6 +218,7 @@ curl http://localhost:5000/api/auth/admin-status \
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -268,6 +282,7 @@ curl -X POST https://your-backend.railway.app/api/auth/create-admin \
    - Service will auto-redeploy
 
 2. **Verify removal**:
+
    ```bash
    curl https://your-backend.railway.app/api/auth/admin-status \
      -H "Authorization: Bearer YOUR_TOKEN"
@@ -285,6 +300,7 @@ curl -X POST https://your-backend.railway.app/api/auth/create-admin \
 **Cause:** Mismatch between request `secretKey` and environment variable.
 
 **Solutions:**
+
 - Verify `.env` file has correct value (check for typos)
 - Ensure no trailing spaces or hidden characters
 - Restart backend after adding/changing environment variable
@@ -295,10 +311,11 @@ curl -X POST https://your-backend.railway.app/api/auth/create-admin \
 **Cause:** Password doesn't meet minimum requirements.
 
 **Solution:** Use a password with:
+
 - 12+ characters
 - Mixed case letters (A-z)
-- Numbers (0-9)  
-- Special characters (!@#$%^&*)
+- Numbers (0-9)
+- Special characters (!@#$%^&\*)
 
 Example: `SecureAdmin@2026!`
 
@@ -309,12 +326,14 @@ Example: `SecureAdmin@2026!`
 **Solutions:**
 
 **Option 1:** Use existing credentials
+
 - If you forgot password, use Option 2
 
 **Option 2:** Promote existing user via database
+
 ```sql
-UPDATE users 
-SET role = 'ADMIN', is_verified = true 
+UPDATE users
+SET role = 'ADMIN', is_verified = true
 WHERE email = 'your-existing-email@example.com';
 ```
 
@@ -327,6 +346,7 @@ WHERE email = 'your-existing-email@example.com';
 **Solution:**
 
 1. Add to `.env`:
+
    ```env
    ADMIN_CREATION_SECRET=your-secret-here
    ```
@@ -361,6 +381,7 @@ npm run logs  # If configured
 **Solution:**
 
 Ensure `.env` includes admin dashboard URLs in `ALLOWED_ORIGINS`:
+
 ```env
 ALLOWED_ORIGINS=http://localhost:3000,https://qt-fashion-admin.vercel.app
 ```
@@ -375,22 +396,25 @@ If you lose access to your admin account:
 -- Connect to PostgreSQL database
 -- Railway: Use database connection string from dashboard
 
-UPDATE users 
-SET role = 'ADMIN', is_verified = true 
+UPDATE users
+SET role = 'ADMIN', is_verified = true
 WHERE email = 'your-existing-user-email@example.com';
 ```
 
 **Steps:**
+
 1. Connect to database using Prisma Studio or psql
 2. Find your existing user account
 3. Update role to 'ADMIN'
 4. Login with your existing credentials
 
 **Using Prisma Studio:**
+
 ```bash
 cd qt-fashion-backend
 npx prisma studio
 ```
+
 Then navigate to Users table and edit the role field.
 
 ### Option 2: Re-enable Endpoint (NOT Recommended)
@@ -496,32 +520,38 @@ This feature is planned for a future update.
 Once you're logged in as admin, you can:
 
 ### Dashboard
+
 - View total revenue from platform fees
 - See order statistics
 - Monitor average fee percentage
 - Check designer distribution by tier
 
 ### Platform Settings
+
 - Configure default platform fee percentage
 - View audit trail of all changes
 - Manage global settings
 
 ### Fee Tier Management
+
 - Create/edit/delete fee tiers
 - Set order range requirements
 - Reward designers based on experience
 
 ### Designer Overrides
+
 - Set custom fees for specific designers
 - Add reasons/notes for overrides
 - Highest priority in fee calculation
 
 ### Promotional Campaigns
+
 - Create time-based fee reductions
 - Auto-activation by date range
 - Support marketing campaigns
 
 ### Audit Logs
+
 - Complete history of all changes
 - Track which admin made changes
 - Before/after value comparison
@@ -541,16 +571,19 @@ For additional help:
 ### Generating Secure Secrets
 
 **Using OpenSSL (macOS/Linux):**
+
 ```bash
 openssl rand -base64 32
 ```
 
 **Using Node.js:**
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 **Using Python:**
+
 ```bash
 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
@@ -558,14 +591,17 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ### Environment Variable Locations
 
 **Local Development:**
+
 - File: `qt-fashion-backend/.env`
 - Not committed to git (in `.gitignore`)
 
 **Railway:**
+
 - Dashboard → Project → Variables tab
 - Automatically encrypted at rest
 
 **Vercel:**
+
 - Dashboard → Project → Settings → Environment Variables
 - Separate variables for Production/Preview/Development
 

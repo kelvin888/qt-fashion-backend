@@ -165,13 +165,13 @@ export const removePushToken = async (req: Request, res: Response, next: NextFun
  * @security Protected by ADMIN_CREATION_SECRET environment variable
  * @access Public (but requires secret key)
  * @route POST /api/auth/create-admin
- * 
+ *
  * @description
  * Creates the first admin user for the platform. This endpoint should be:
  * 1. Used only once during initial deployment
  * 2. Disabled after creating the first admin (remove ADMIN_CREATION_SECRET)
  * 3. Protected with a strong, randomly generated secret key
- * 
+ *
  * @important After creating admin, immediately:
  * - Remove ADMIN_CREATION_SECRET from environment variables
  * - Login and change the password
@@ -183,7 +183,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
 
     // Validate secret key exists in environment
     const expectedSecret = process.env.ADMIN_CREATION_SECRET;
-    
+
     if (!expectedSecret) {
       console.error('❌ ADMIN_CREATION_SECRET not configured in environment');
       return res.status(500).json({
@@ -198,7 +198,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
         ip: req.ip,
         timestamp: new Date().toISOString(),
       });
-      
+
       return res.status(403).json({
         success: false,
         message: 'Invalid secret key',
@@ -256,12 +256,13 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
 
     res.status(201).json({
       success: true,
-      message: 'Admin user created successfully. Please remove ADMIN_CREATION_SECRET from environment variables.',
+      message:
+        'Admin user created successfully. Please remove ADMIN_CREATION_SECRET from environment variables.',
       data: result,
     });
   } catch (error: any) {
     console.error('❌ Admin creation error:', error);
-    
+
     // Check for specific error messages from service
     if (error.message.includes('already exists')) {
       return res.status(409).json({
@@ -269,7 +270,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
         message: error.message,
       });
     }
-    
+
     next(error);
   }
 };
@@ -279,20 +280,18 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
  * @access Admin only (requires valid JWT)
  * @route GET /api/auth/admin-status
  */
-export const checkAdminCreationStatus = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const checkAdminCreationStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const status = await authService.getAdminCreationStatus();
 
     let recommendation: string;
-    
+
     if (status.adminCount === 0) {
-      recommendation = 'No admin users exist. Use /api/auth/create-admin endpoint to create first admin.';
+      recommendation =
+        'No admin users exist. Use /api/auth/create-admin endpoint to create first admin.';
     } else if (status.isEnabled) {
-      recommendation = '⚠️ SECURITY WARNING: Admin creation endpoint is still enabled. Remove ADMIN_CREATION_SECRET from environment variables immediately.';
+      recommendation =
+        '⚠️ SECURITY WARNING: Admin creation endpoint is still enabled. Remove ADMIN_CREATION_SECRET from environment variables immediately.';
     } else {
       recommendation = '✅ Admin creation endpoint is properly disabled. System is secure.';
     }

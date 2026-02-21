@@ -191,7 +191,7 @@ router.delete('/push-token', authenticate, removePushToken);
  *       - Used only once during initial deployment
  *       - Disabled after creating the first admin (remove ADMIN_CREATION_SECRET)
  *       - Protected with a strong, randomly generated secret key
- *       
+ *
  *       After creating admin:
  *       - Remove ADMIN_CREATION_SECRET from environment variables
  *       - Login and change the password
