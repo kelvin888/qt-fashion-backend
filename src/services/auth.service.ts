@@ -110,7 +110,7 @@ class AuthService {
 
         await Promise.all(
           admins.map((admin) =>
-            notificationService.sendNotification({
+            notificationService.createNotification({
               userId: admin.id,
               title: 'New Designer Registered',
               message: `${user.fullName} has registered and is pending approval.`,
@@ -314,6 +314,7 @@ class AuthService {
         brandLogo: user.brandLogo,
         brandBanner: user.brandBanner,
         bio: user.bio,
+        accountVerified: user.accountVerified,
         createdAt: user.createdAt.toISOString(),
       },
       token,
