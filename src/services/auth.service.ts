@@ -3,6 +3,7 @@ import { PrismaClient, UserRole } from '@prisma/client';
 import { generateToken } from '../utils/jwt';
 import { validateAndNormalizeEmail } from '../utils/validation';
 import adminEventsService from './admin-events.service';
+import { notificationService } from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -40,6 +41,7 @@ export interface AuthResponse {
     brandLogo: string | null;
     brandBanner: string | null;
     bio: string | null;
+    accountVerified: boolean;
     createdAt: string;
   };
   token: string;
@@ -63,18 +65,23 @@ class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    // Determine if user should be auto-approved
+    const isDesigner = data.role.toUpperCase() === 'DESIGNER';
+
     // Prepare user data
     const userData: any = {
       email: normalizedEmail,
       password: hashedPassword,
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
-      role: data.role.toUpperCase() === 'DESIGNER' ? UserRole.DESIGNER : UserRole.CUSTOMER,
+      role: isDesigner ? UserRole.DESIGNER : UserRole.CUSTOMER,
       gender: data.gender || null,
+      // Customers are auto-approved, designers need admin approval
+      accountVerified: !isDesigner,
     };
 
     // Add designer-specific fields if role is designer
-    if (data.role.toUpperCase() === 'DESIGNER') {
+    if (isDesigner) {
       userData.brandName = data.brandName;
       userData.brandLogo = data.brandLogo;
       userData.brandBanner = data.brandBanner;
@@ -92,6 +99,35 @@ class AuthService {
     const user = await prisma.user.create({
       data: userData,
     });
+
+    // If designer, notify all admins
+    if (user.role === UserRole.DESIGNER) {
+      try {
+        const admins = await prisma.user.findMany({
+          where: { role: UserRole.ADMIN },
+          select: { id: true },
+        });
+
+        await Promise.all(
+          admins.map((admin) =>
+            notificationService.sendNotification({
+              userId: admin.id,
+              title: 'New Designer Registered',
+              message: `${user.fullName} has registered and is pending approval.`,
+              type: 'USER_ACTION',
+              data: {
+                userId: user.id,
+                userEmail: user.email,
+                userName: user.fullName,
+              },
+            })
+          )
+        );
+      } catch (error) {
+        console.error('Failed to notify admins of new designer signup:', error);
+        // Don't fail signup if notification fails
+      }
+    }
 
     // Generate token
     const token = generateToken({
@@ -113,6 +149,7 @@ class AuthService {
         brandLogo: user.brandLogo,
         brandBanner: user.brandBanner,
         bio: user.bio,
+        accountVerified: user.accountVerified,
         createdAt: user.createdAt.toISOString(),
       },
       token,
@@ -160,6 +197,7 @@ class AuthService {
         brandLogo: user.brandLogo,
         brandBanner: user.brandBanner,
         bio: user.bio,
+        accountVerified: user.accountVerified,
         createdAt: user.createdAt.toISOString(),
       },
       token,
@@ -182,6 +220,7 @@ class AuthService {
         brandLogo: true,
         brandBanner: true,
         bio: true,
+        accountVerified: true,
         createdAt: true,
       },
     });

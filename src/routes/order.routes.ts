@@ -6,6 +6,7 @@
 
 import { Router } from 'express';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
+import { requireVerifiedAccount } from '../middleware/verifyAccount.middleware';
 import * as orderController from '../controllers/order.controller';
 
 const router = Router();
@@ -174,7 +175,7 @@ router.get('/:orderId', orderController.getOrderById);
  *       404:
  *         description: Order not found
  */
-router.patch('/:orderId/status', orderController.updateOrderStatus);
+router.patch('/:orderId/status', requireVerifiedAccount, orderController.updateOrderStatus);
 
 /**
  * @swagger
@@ -224,7 +225,7 @@ router.patch('/:orderId/status', orderController.updateOrderStatus);
  *       404:
  *         description: Order not found
  */
-router.patch('/:orderId/production', orderController.updateProduction);
+router.patch('/:orderId/production', requireVerifiedAccount, orderController.updateProduction);
 
 /**
  * @swagger
@@ -322,7 +323,7 @@ router.patch('/:orderId/production/steps/:stepId', orderController.updateProduct
  *       404:
  *         description: Order not found
  */
-router.post('/:orderId/shipment', orderController.addShipment);
+router.post('/:orderId/shipment', requireVerifiedAccount, orderController.addShipment);
 
 /**
  * @swagger

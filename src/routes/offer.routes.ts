@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as offerController from '../controllers/offer.controller';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
+import { requireVerifiedAccount } from '../middleware/verifyAccount.middleware';
 
 const router = Router();
 
@@ -90,7 +91,12 @@ router.delete('/:id/withdraw', requireRole('CUSTOMER'), offerController.withdraw
  *       403:
  *         description: Designer role required
  */
-router.put('/:id/accept', requireRole('DESIGNER'), offerController.acceptOffer);
+router.put(
+  '/:id/accept',
+  requireRole('DESIGNER'),
+  requireVerifiedAccount,
+  offerController.acceptOffer
+);
 
 /**
  * @swagger
@@ -126,7 +132,12 @@ router.put('/:id/accept', requireRole('DESIGNER'), offerController.acceptOffer);
  *       403:
  *         description: Designer role required
  */
-router.put('/:id/counter', requireRole('DESIGNER'), offerController.counterOffer);
+router.put(
+  '/:id/counter',
+  requireRole('DESIGNER'),
+  requireVerifiedAccount,
+  offerController.counterOffer
+);
 
 /**
  * @swagger
@@ -157,7 +168,12 @@ router.put('/:id/counter', requireRole('DESIGNER'), offerController.counterOffer
  *       403:
  *         description: Designer role required
  */
-router.put('/:id/reject', requireRole('DESIGNER'), offerController.rejectOffer);
+router.put(
+  '/:id/reject',
+  requireRole('DESIGNER'),
+  requireVerifiedAccount,
+  offerController.rejectOffer
+);
 
 /**
  * @swagger

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as designController from '../controllers/design.controller';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
+import { requireVerifiedAccount } from '../middleware/verifyAccount.middleware';
 
 const router = Router();
 
@@ -178,7 +179,13 @@ router.get('/:id', designController.getDesignById);
  *       403:
  *         description: Designer role required
  */
-router.post('/', authenticate, requireRole('DESIGNER'), designController.createDesign);
+router.post(
+  '/',
+  authenticate,
+  requireRole('DESIGNER'),
+  requireVerifiedAccount,
+  designController.createDesign
+);
 
 /**
  * @swagger
@@ -214,7 +221,13 @@ router.post('/', authenticate, requireRole('DESIGNER'), designController.createD
  *       403:
  *         description: Not authorized
  */
-router.put('/:id', authenticate, requireRole('DESIGNER'), designController.updateDesign);
+router.put(
+  '/:id',
+  authenticate,
+  requireRole('DESIGNER'),
+  requireVerifiedAccount,
+  designController.updateDesign
+);
 
 /**
  * @swagger
@@ -237,7 +250,13 @@ router.put('/:id', authenticate, requireRole('DESIGNER'), designController.updat
  *       403:
  *         description: Not authorized
  */
-router.delete('/:id', authenticate, requireRole('DESIGNER'), designController.deleteDesign);
+router.delete(
+  '/:id',
+  authenticate,
+  requireRole('DESIGNER'),
+  requireVerifiedAccount,
+  designController.deleteDesign
+);
 
 /**
  * @swagger

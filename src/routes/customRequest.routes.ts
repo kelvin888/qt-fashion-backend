@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
+import { requireVerifiedAccount } from '../middleware/verifyAccount.middleware';
 import {
   createCustomRequest,
   getAllCustomRequests,
@@ -25,8 +26,8 @@ router.get('/:id', authenticate, getCustomRequestById);
 router.patch('/:id', authenticate, updateCustomRequest);
 
 // Bidding routes
-router.post('/:id/bids', authenticate, submitBid);
-router.patch('/:requestId/bids/:bidId', authenticate, updateBid);
+router.post('/:id/bids', authenticate, requireVerifiedAccount, submitBid);
+router.patch('/:requestId/bids/:bidId', authenticate, requireVerifiedAccount, updateBid);
 router.delete('/:requestId/bids/:bidId', authenticate, withdrawBid);
 router.get('/:id/bids', authenticate, getBidsForRequest);
 router.post('/:requestId/bids/:bidId/accept', authenticate, acceptBid);
