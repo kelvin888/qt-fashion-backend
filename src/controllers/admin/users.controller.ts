@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../config/database';
 import adminEventsService from '../../services/admin-events.service';
+import { realtimeEventService } from '../../services/realtime-event.service';
 
 /**
  * Get all users with filters and pagination
@@ -154,12 +155,22 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user;
+    // Remove password from response and transform _count to stats
+    const { password, _count, ...userWithoutPassword } = user;
+
+    const userWithStats = {
+      ...userWithoutPassword,
+      stats: {
+        designsCount: _count.designs,
+        ordersAsCustomer: _count.ordersAsCustomer,
+        ordersAsDesigner: _count.ordersAsDesigner,
+        totalOrders: _count.ordersAsCustomer + _count.ordersAsDesigner,
+      },
+    };
 
     res.status(200).json({
       success: true,
-      data: userWithoutPassword,
+      data: userWithStats,
     });
   } catch (error: any) {
     next(error);
@@ -232,6 +243,16 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
       newValue: accountVerified,
     });
     adminEventsService.emitStatsUpdated('user_status_changed');
+
+    // Emit SSE event to the user whose account was updated
+    if (accountVerified) {
+      realtimeEventService.publishToUser(user.id, {
+        type: 'ACCOUNT_ACTIVATED',
+        domain: 'notification',
+        action: 'account_verified',
+        entityId: user.id,
+      });
+    }
 
     console.log(
       `⚙️ User ${id} status updated by admin: ${accountVerified ? 'Activated' : 'Suspended'}`,
