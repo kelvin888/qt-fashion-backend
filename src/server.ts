@@ -1,5 +1,4 @@
 import express, { Application } from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
@@ -28,15 +27,29 @@ const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-};
-app.use(cors(corsOptions));
-// Explicitly handle OPTIONS preflight for all routes
-app.options('/{*path}', cors(corsOptions));
+app.use((req, res, next) => {
+  const requestOrigin = req.headers.origin as string | undefined;
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) ?? [];
+
+  const originAllowed =
+    allowedOrigins.length === 0 || (requestOrigin != null && allowedOrigins.includes(requestOrigin));
+
+  if (originAllowed && requestOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Max-Age', '86400');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+
+  next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
